@@ -86,6 +86,7 @@ subroutine drive(ng2, ngDyn, ngdDyn, iostat)
    if (writexyz) open(unit=18,file=fcoord)
    if ((mulliken).or.(td_do_pop.gt.0)) open(unit=85,file=fmulliken)
    if (restart_freq.gt.0) open(unit=88,file=frestart)
+
 !c---------------------------------------------------------
 !c POINTERS -----------------------------------------------
 !c
