@@ -8,7 +8,8 @@
        use ECP_mod    , only: ecpmode
        use fileio_data, only: style
        use basis_subs , only: basis_deinit
- 
+       use converger_ls, only: P_linearsearch_fin
+
        implicit none
        call basis_deinit()
 
@@ -39,6 +40,7 @@
 !--------------------------------------------------------------------!
        if (ecpmode) call intECP(4) !desalocatea variables de pseudopotenciales
 
+       call P_linearsearch_fin()
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 ! Nuevos formatos, Nick
