@@ -36,28 +36,8 @@ void coef_calculator(double pd,double sigma,double pdx,double pdy,double pdz,
                      v2rho2,v2rhosigma,v2sigma2,
                      v3rho3,v3rho2sigma,v3rhosigma2,v3sigma3);
 
-   //for(int i=0; i<12; i++)
-     //printf("%d   %lf\n",i,v3sigma3[i]);
-
-/*
-   v3rho2sigma[2] = 1062217532.3723156;
-   v3rho2sigma[3] = 1062217532.3723156;
-   v3rho2sigma[4] = 2124435064.7202091;
-   v3rho2sigma[5] = 1162554460.1091642;
-   v3rho2sigma[6] = 1162554460.1091642;
-   v3rho2sigma[7] = 2325108920.1885753;
-   v3rho2sigma[8] = 1062217532.3722907;
-   v3rho2sigma[9] = 1062217532.3722907;
-   v3rho2sigma[10] = 2124435064.7201595;
-*/
-
-   //exit(-1);
-
    double DUMNV[2],DXV[2],DYV[2],DZV[2],DUMGRV[4],DUMXX[4];
    double C[20];
-
-   //pd = 8.6792344676238335E-006;//DEBUG
-   //sigma = 6.1329471537828528E-010;//DEBUG
 
    DUMNV[0] = DUMNV[1] = td;
 
@@ -85,18 +65,6 @@ void coef_calculator(double pd,double sigma,double pdx,double pdy,double pdz,
    C[7]=2.0f*DUMGRV[0]*DUMGRV[0];
    C[8]=2.0f*DUMGRV[0]*DUMGRV[0];
    C[9]=DUMGRV[0]*DUMGRV[0];
-/*
-      cout << "C0 " << C[0] << endl;
-      cout << "C1 " << C[1] << endl;
-      cout << "C2 " << C[2] << endl;
-      cout << "C3 " << C[3] << endl;
-      cout << "C4 " << C[4] << endl;
-      cout << "C5 " << C[5] << endl;
-      cout << "C6 " << C[6] << endl;
-      cout << "C7 " << C[7] << endl;
-      cout << "C8 " << C[8] << endl;
-      cout << "C9 " << C[9] << endl;
-*/  // bien
 
 // -- EXCHANGE
    double XDUMA=0.0f;
@@ -215,18 +183,6 @@ void coef_calculator(double pd,double sigma,double pdx,double pdy,double pdz,
    C[7]=2.0f*DUMGRV[1]*DUMGRV[1];
    C[8]=2.0f*DUMGRV[1]*DUMGRV[1];
    C[9]=DUMGRV[1]*DUMGRV[1];
-/*
-      cout << "C0 " << C[0] << endl;
-      cout << "C1 " << C[1] << endl;
-      cout << "C2 " << C[2] << endl;
-      cout << "C3 " << C[3] << endl;
-      cout << "C4 " << C[4] << endl;
-      cout << "C5 " << C[5] << endl;
-      cout << "C6 " << C[6] << endl;
-      cout << "C7 " << C[7] << endl;
-      cout << "C8 " << C[8] << endl;
-      cout << "C9 " << C[9] << endl;
-*/ // bien
 // A-BB--1      GB
    //CDUMA=CDUMA+C1*EC(IIPT,IRAGB)
    CDUMA=CDUMA+C[0]*v2rhosigma[3];
@@ -907,13 +863,13 @@ void coef_calculator(double pd,double sigma,double pdx,double pdy,double pdz,
       COEF[2] = DUM3A;
 
 // FREE MEMORY FROM LIBXC OUTPUT'S
-      free(vrho);
-      free(vsigma);
-      free(v2rho2);
-      free(v2rhosigma);
-      free(v2sigma2);
-      free(v3rho3);
-      free(v3rho2sigma);
-      free(v3rhosigma2);
-      free(v3sigma3);
+      free(vrho); vrho = NULL;
+      free(vsigma); vsigma = NULL;
+      free(v2rho2); v2rho2 = NULL;
+      free(v2rhosigma); v2rhosigma = NULL;
+      free(v2sigma2); v2sigma2 = NULL;
+      free(v3rho3); v3rho3 = NULL;
+      free(v3rho2sigma); v3rho2sigma = NULL;
+      free(v3rhosigma2); v3rhosigma2 = NULL;
+      free(v3sigma3); v3sigma3 = NULL;
 }

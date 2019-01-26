@@ -3,6 +3,7 @@
 #include <omp.h>
 
 #include <stdio.h>
+#include <string.h> 
 
 #include "../common.h"
 #include "../init.h"
@@ -73,20 +74,19 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
 
    double* zcoef = (double*) malloc(3*sizeof(double));
    double* precond = (double*) malloc(group_m*sizeof(double));
+   double* smallFock = (double*) malloc(group_m*group_m*sizeof(double));
+   memset(smallFock,0.0f,group_m*group_m*sizeof(double));
 
    int row, col;
 
 // FORMAMOS LA TRANSITION DENSITY REDUCIDA
-   //cout << "group_m: " << group_m << endl;
    HostMatrix<double> tred(group_m,group_m);
    for(int i=0; i<group_m; i++) {
      row = numeros[i];
      tred(i,i) = Tmat[row*M+row];
-     //cout << i << " " <<Tmat[row*M+row] << endl;
      for(int j=0; j<i; j++) {
        col = numeros[j];
        tred(i,j) = Tmat[row*M+col] + Tmat[col*M+row];
-       //cout << i << " " << j << " " <<Tmat[row*M+col] << " " << Tmat[col*M+row] << endl;
      }
    }
 
@@ -128,16 +128,6 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
          redz += gz * z + z3zc * Fi;
       }
       double sigma = pdx * pdx + pdy * pdy + pdz * pdz;
-/*
-//    DEBUG 
-      pd = 8.6792344676238335E-006 * 2.0f;
-      sigma = 6.1329471537828528E-010 * 4.0f;
-      pdx = -1.2195835377375016E-005;
-      pdy = 1.6363583240860429E-005; pdz = -1.4028166606712547E-005;
-      red = -1.8661364453244286E-005;
-      redx = 3.3089162612377751E-006;
-      redy = 1.8056171389542832E-005; redz = 5.4889385076820334E-005;
-*/
       pdx *= 0.5f; pdy *= 0.5f; pdz *= 0.5f;
 
       if (DER == 2 ) {
@@ -157,7 +147,6 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
       const scalar_type wp = this->points[point].weight;
       double term1, term2, term3, term4, precondii, result;
       for(int i=0; i<group_m; i++) {
-        row = numeros[i];
         term1 = zcoef[0] * 0.5f * fv[i] + zcoef[1] * pdx * gxv[i];
         term2 = zcoef[1] * pdy * gyv[i] + zcoef[1] * pdz * gzv[i];
         term3 = zcoef[2] * redx * gxv[i] + zcoef[2] * redy * gyv[i];
@@ -165,63 +154,27 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
         precond[i] = (term1 + term2 + term3 + term4) * wp;
         precondii = precond[i];
         for(int j=0; j<=i; j++) {
-           col = numeros[j];
            result = fv[i] * precond[j] + precondii * fv[j];
-           F[row*M+col] += result;
+           smallFock[i*group_m+j] += result;
         }
       }
 
    }  // END points loop
 
-   // Free Memory
-   delete[] numeros;
-   free(precond);
-   free(zcoef);
-}
-//######################################################################
-//######################################################################
-
-//######################################################################
-//######################################################################
-/*
-template<class scalar_type>
-void PointGroupCPU<scalar_type>::get_coef_input(HostMatrix<scalar_type>&
-               rmm_input,int* vecnum) const
-{
-   const int indexes = this->rmm_bigs.size();
-   std::vector<int> row;
-   for(int i = 0; i < indexes; i++) {
-      int bi = this->rmm_bigs[i];
-      for(int l=1; l<=fortran_vars.m; l++) {
-         for(int k=1; k<=(l-1); k++) {
-            int idx = l + (2*fortran_vars.m-k)*(k-1)/2;
-            if(bi+1 == idx) {
-              row.push_back(l-1);
-              row.push_back(k-1);
-            }
-         }
-         int idx = l+(2*fortran_vars.m-l)*(l-1)/2;
-         if(bi+1 == idx) {
-           row.push_back(l-1);
-         }
-      }
-   }
-// delete of repeated indexes
-   int numeros[row.size()];
-   int r = 0, i, k;
-   for(i=0,k=0;i<row.size(),k<row.size();i++,k++) {
-      numeros[i]=row[r];r++;
-      for(int j =i-1; j>=0;j--) {
-        if(numeros[i] == numeros[j])
-        {
-           i--;break;
-        }
+   for(int i=0;i<group_m;i++) {
+     row = numeros[i];
+     for(int j=0;j<=i;j++) {
+       col = numeros[j];
+       F[row*M+col] += smallFock[i*group_m+j];
      }
-  }
-  for(int wx=0; wx<i; wx++)
-        vecnum[wx] = numeros[wx];
+   }
+
+   // Free Memory
+   delete[] numeros; numeros = NULL;
+   free(smallFock); smallFock = NULL;
+   free(precond); precond = NULL;
+   free(zcoef); zcoef = NULL;
 }
-*/
 //######################################################################
 //######################################################################
 
@@ -233,3 +186,5 @@ template class PointGroup<float>;
 template class PointGroupCPU<float>;
 #endif
 }
+//######################################################################
+//######################################################################

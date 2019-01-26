@@ -291,14 +291,14 @@ contains
       integer :: i, j, k
       real*8, dimension(:,:), allocatable :: scratch
 
-! PASAMOS LA MATRIZ EN OM DE LOS VECTORES A MATRIZ EN AO
+!     CHANGE BASIS MO -> AO
       allocate(scratch(M,M))
       do i=1,numvec
          scratch = matmul(MatMO(:,:,i),Coef_trans)
          MatAO(:,:,i) = matmul(C,scratch)
       enddo
 
-! PASAMOS MatAO A LA TRANSPUESTA PARA LUEGO USARLA EN C
+!     WE TRANSPOSE MATRIX FOR USE IT IN C
       if ( transp ) then
         do i=1,numvec
           scratch = MatAO(:,:,i)
@@ -329,7 +329,7 @@ contains
      allocate(scratch(M,M))
      scratch = matmul(TmatMO(:,:,iv),Coef_trans(:,:))
 
-     ! FORM TRANSPOSE FOR USE IT IN C
+!    FORM TRANSPOSE FOR USE IT IN C
      do i=1,M
      do j=1,M
         VecMOAO(i,j) = scratch(j,i)
@@ -639,15 +639,15 @@ contains
 
       allocate(Tdip(Nstat,3),TdensMO(M,M,Nstat),TdensAO(M,M,Nstat))
 
-      ! FORM TRANSITION DENSITY IN MO BASIS
+!     FORM TRANSITION DENSITY IN MO BASIS
       call vecMOtomatMO(X,TdensMO,M,NCO,Nvirt,Nstat,Nstat,0,Ndim)
-      ! CHANGE THE MO TO AO BASIS
+!     CHANGE BASIS MO -> AO
       call matMOtomatAO(TdensMO,TdensAO,Coef,M,Nstat,.true.)
       deallocate(TdensMO)
-      ! CALCULATE TRANSITION DIPOLE
+!     CALCULATE TRANSITION DIPOLE
       call TransDipole(TdensAO,Tdip,M,Nstat)
       deallocate(TdensAO)
-      ! CALCULATE THE OSCILATOR STRENGHT
+!     CALCULATE THE OSCILATOR STRENGHT
       call ObtainOsc(Tdip,Ene,OsSt,Nstat)
       deallocate(Tdip)
    end subroutine OscStr
@@ -663,7 +663,7 @@ contains
       integer :: i, j, ist
       real*8, dimension(:,:), allocatable :: RhoRmm
 
-      ! Save Rho in Rmm
+!     SAVE RHO FROM RMM
       allocate(RhoRmm(M,M))
       call spunpack_rho('L',M,RMM,RhoRmm)
 
@@ -678,7 +678,7 @@ contains
       enddo
       Tdip = Tdip * 2.0D0 / dsqrt(2.0D0)
 
-      ! Copy Rho old in RMM
+!     COPY RHO OLD INTO RMM
       do i=1,M
       do j=1,i-1
          RhoRMM(i,j) = RhoRMM(i,j) * 2.0D0
@@ -724,32 +724,32 @@ contains
 
       Nvirt = M - NCO
 
-      ! FORM UNRELAXED DIFFERENCE DENSITY MATRIX
+!     FORM UNRELAXED DIFFERENCE DENSITY MATRIX
       allocate(TundMO(M,M))
       call UnDiffDens(X,TundMO,NCO,Nvirt,M,Ndim)
 
-      ! CHANGE BASIS T MO -> AO
+!     CHANGE BASIS T MO -> AO
       allocate(TundAO(M,M))
       call matMOtomatAO(TundMO,TundAO,C,M,1,.false.)
       deallocate(TundMO)
 
-      ! FORM TRANSITION DENSITY MATRIX
+!     FORM TRANSITION DENSITY MATRIX
       allocate(Xmat(M,M)); Xmat = 0.0D0
       call XmatForm(X,C,Xmat,Ndim,NCO,Nvirt,M)
 
-      ! CALCULATE THIRD DERIVATIVE FOCK
+!     CALCULATE THIRD DERIVATIVE FOCK
       allocate(Gxc(M,M)); Gxc = 0.0D0
       call g2g_calculateg(Xmat,Gxc,3) 
 
-      ! CALCULATE SECOND DERIVATIVE FOCK
+!     CALCULATE SECOND DERIVATIVE FOCK
       allocate(FX(M,M)); FX = 0.0D0
       call g2g_calculateg(Xmat,FX,2) 
       allocate(FT(M,M)); FT = 0.0D0
       call g2g_calculateg(TundAO,FT,2) 
 
-      ! CALCULATE TWO ELECTRON FOCK
-      ! 1 = tiene la parte 2e de Xmat
-      ! 2 = tiene la parte 2e de Tund
+!     CALCULATE TWO ELECTRON FOCK
+!     1 = tiene la parte 2e de Xmat
+!     2 = tiene la parte 2e de Tund
       allocate(PA(M,M,2),F2e(M,M,2)); F2e = 0.0D0
       PA(:,:,1) = Xmat; PA(:,:,2) = TundAO
       deallocate(Xmat)
@@ -768,17 +768,17 @@ contains
       FX = F2e(:,:,1) + 2.0D0 * FX
       deallocate(F2e)
 
-      ! CHANGE BASIS OF FOCK MATRIX
+!     CHANGE BASIS OF ALL FOCK TYPE MATRIX
       allocate(FXAB(Nvirt,Nvirt),FXIJ(NCO,NCO))
       allocate(FTIA(NCO,Nvirt),GXCIA(NCO,Nvirt))
       call ChangeBasisF(FX,FT,Gxc,C,FXAB,FXIJ,FTIA,GXCIA,M,Nvirt,NCO)
       deallocate(FX,FT,Gxc)
 
-      ! CALCULATE VECTOR R OF A * X = R
+!     CALCULATE VECTOR R (A * X = R)
       allocate(Rvec(Ndim))
       call RCalculate(FXAB,FXIJ,FTIA,GXCIA,X,Rvec,NCO,Nvirt,Ndim)
  
-      ! SOLVE EQUATION AX=R WITH PCG METHOD     
+!     SOLVE EQUATION AX=R WITH PCG METHOD     
       call PCG_solve(Rvec,K4cen,TundAO,C,Ene,M,NCO,Nvirt,Ndim)
       
       deallocate(TundAO,FXAB,FXIJ,FTIA,GXCIA,Rvec)
@@ -795,9 +795,9 @@ contains
       real*8 :: raiz2
       real*8, dimension(:,:), allocatable :: XM, XMtrans, Ptrash
 
-!     NORMALIZAMOS A 1/2 PARA EVITAR PREFACTORES
       allocate(XM(NCO,Nvirt),XMtrans(Nvirt,NCO))
 
+!     WE NORMALIZE TO 1/2
       raiz2 = 1.0D0 / dsqrt(2.0D0)
       T = 0.0D0
       NCOc = NCO + 1
@@ -810,7 +810,7 @@ contains
       enddo
       enddo
 
-!     ARMAMOS LA MATRIZ DENSIDAD DIFERENCIA NO RELAJADA
+!     FORM UNRELAXED DIFFERENCE DENSITY MATRIX
       allocate(Ptrash(NCO,NCO))
       ! FORM BLOCK OCC-OCC
       Ptrash = (-1.0D0) * matmul(XM,XMtrans)
@@ -877,7 +877,7 @@ contains
       integer :: i, j
       real*8, dimension(:,:), allocatable :: scratch
 
-      ! COMPLETE LOWER TRIANGULO
+!     COMPLETE LOWER TRIANGULO
       do i=1,M
       do j=i,M
          FX(j,i) = FX(i,j)
@@ -886,30 +886,29 @@ contains
       enddo
       enddo
 
-      ! FORM FX IN BASIS VIRT X VIRT
+!     FORM FX IN BASIS VIRT X VIRT
       allocate(scratch(M,Nvirt))
       scratch = matmul(FX,Cvir)
       FXAB = matmul(Cvir_trans,scratch)
       deallocate(scratch)
  
-      ! FORM FX IN BASIS OCC X OCC
+!     FORM FX IN BASIS OCC X OCC
       allocate(scratch(M,NCO))
       scratch = matmul(FX,Cocc)
       FXIJ = matmul(Cocc_trans,scratch)
       deallocate(scratch)
 
-      ! FORM FT IN BASIS OCC X VIR
+!     FORM FT IN BASIS OCC X VIR
       allocate(scratch(M,Nvirt))
       scratch = matmul(FT,Cvir)
       FTIA = matmul(Cocc_trans,scratch)
       deallocate(scratch)
 
-      ! FORM GXC IN BASIS OCC X VIR
+!     FORM GXC IN BASIS OCC X VIR
       allocate(scratch(M,Nvirt))
       scratch = matmul(Gxc,Cvir)
       GXCIA = matmul(Cocc_trans,scratch)
       deallocate(scratch)
-
    end subroutine ChangeBasisF
 
    subroutine RCalculate(FXAB,FXIJ,FTIA,GXCIA,X,Rvec,NCO,Nvirt,Ndim)
@@ -946,7 +945,6 @@ contains
          temp1 = 0.0D0; temp2 = 0.0D0
       enddo
       enddo
-
    end subroutine RCalculate
  
    subroutine PCG_solve(bvec,K4,Rho_urel,Coef,E,M,NCO,Nvirt,Ndim)
@@ -960,19 +958,17 @@ contains
       integer :: i, j, iter, maxIter
       real*8 :: beta, alpha
       logical :: conv = .false.
-      real*8, dimension(:), allocatable :: R, Z, Pk, Mprec, ApIA
-      real*8, dimension(:), allocatable :: X
-      real*8, dimension(:,:), allocatable :: Pmat, F2e, Fxc
-      real*8, dimension(:,:), allocatable :: Ftot
+      real*8, dimension(:), allocatable :: R, Z, Pk, Mprec, ApIA, X
+      real*8, dimension(:,:), allocatable :: Pmat, F2e, Fxc, Ftot
 
-! START PRECONDITINED CONJUGATE GRADIENT
+!     START PRECONDITINED CONJUGATE GRADIENT
       maxIter = 50
 
-! INITIAL GUESS: Xo = 0
+!     INITIAL GUESS: Xo = 0
       allocate(R(Ndim))
       R = bvec
 
-! CALCULATE PRECONDITIONED M^(-1)
+!     CALCULATE PRECONDITIONED M^(-1)
       allocate(Mprec(Ndim))
       call Prec_calculate(E,Mprec,M,NCO,Ndim)
 
@@ -984,7 +980,7 @@ contains
       do iter=1,maxIter
          print*, "PCG_ITER:",iter
 
-         ! CONVERT TRIAL VECTORS TO AO
+         ! CONVERT TRIAL VECTORS TO AO BASIS
          call VecToMat(Pk,Pmat,Coef,Ndim,NCO,M)
 
          ! CALCULATE TWO ELECTRON PART
@@ -1019,8 +1015,10 @@ contains
 
       enddo ! ENDDO LOOP PCG
 
-      ! FORM RELAXED DENSITY OF EXCITED STATE
+!     FORM RELAXED DENSITY OF EXCITED STATE
       call RelaxedDensity(X,Rho_urel,Coef,M,NCO,Ndim)
+  
+      deallocate(R,Mprec,Pk,Pmat,F2e,Fxc,Ftot,ApIA,X)
    end subroutine PCG_solve
 
    subroutine RelaxedDensity(Z,Rho_urel,C,M,NCO,N)
@@ -1034,11 +1032,11 @@ contains
       real*8, dimension(:,:), allocatable :: Rho_fund, Rho_exc, Rel_diff
       real*8, dimension(:,:), allocatable :: Zmo, Zao, RhoRMM
 
-      ! EXTRACT RHO FUND FROM RMM
+!     EXTRACT RHO FUND FROM RMM
       allocate(Rho_fund(M,M),RhoRMM(M,M))
       call spunpack_rho('L',M,RMM,Rho_fund)
 
-      ! CONVERT Z IN AO BASIS     
+!     CONVERT Z IN AO BASIS     
       allocate(Zmo(M,M)); Zmo = 0.0D0
       Nvirt = M - NCO
       NCOc = NCO + 1
@@ -1077,9 +1075,9 @@ contains
       enddo
       enddo
 
-      ! SAVE RHO EXCITED IN RMM
+!     SAVE EXCITED RHO INTO RMM
       M2 = M * 2
-      do i=1,M  ! Stores matrix in RMM
+      do i=1,M
          RMM(i + (M2-i)*(i-1)/2) = Rho_exc(i,i)
          do j = i+1, M
             RMM(j + (M2-i)*(i-1)/2) = Rho_exc(i,j) * 2.0D0
@@ -1139,7 +1137,7 @@ contains
       scratch = matmul(Fp,Cvir)
       scratch = matmul(Cocc_trans,scratch)
 
-      ! FORM IN MO BASIS A * p
+!     FORM A*p IN MO BASIS
       NCOc = NCO + 1
       do i=1,NCO
       do j=1,Nvirt
@@ -1241,8 +1239,8 @@ contains
    end subroutine total_fock
 
    subroutine basis_init(Coef,M,NCO,Nvirt)
-   ! This subroutine initializes the matrix needed for 
-   ! the change of basis in linear response and CPKS calculations 
+!  This subroutine initializes the matrix needed for 
+!  the change of basis in linear response and CPKS calculations.
       use lr_data, only: Coef_trans, Cocc, &
                         Cocc_trans, Cvir, Cvir_trans
       implicit none
