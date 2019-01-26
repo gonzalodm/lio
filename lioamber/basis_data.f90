@@ -123,6 +123,7 @@ subroutine basis_init(basis_name, fitting_name, n_atoms, atom_Z, out_stat)
                          indexii, indexiid, natomc, jatc, nnps, nnpp, nnpd
    use basis_data, only: ang_mom, ang_momd, max_f_per_atom, max_c_per_atom,    &
                          c_raw
+   use lr_data, only: lresp, cbas, cbasx, fbas
    implicit none
    ! Inputs:
    !   n_atoms        : the number of atoms in the QM system.
@@ -173,13 +174,17 @@ subroutine basis_init(basis_name, fitting_name, n_atoms, atom_Z, out_stat)
             nnps(n_atoms), nnpp(n_atoms), nnpd(n_atoms), natomc(n_atoms), &
             jatc(n_atoms,n_atoms))
 
+   if ( lresp ) then 
+      allocate(cbas(M, max_c_per_atom),cbasx(M, max_c_per_atom))
+      cbas = 0.0D0; cbasx = 0.0D0
+   endif
+
    ! Initializes everything to 0.
    c  = 0.0D0 ; a  = 0.0D0; nCont  = 0; ang_mom  = 0; nuc  = 0; af = 0.0D0
    cd = 0.0D0 ; ad = 0.0D0; nContd = 0; ang_momd = 0; nucd = 0
 
    nns  = 0 ; nnp  = 0  ; nnd  = 0 ; natomc = 0
    nnps = 0 ; nnpp = 0  ; nnpd = 0 ; jatc   = 0
-
 
    if (int_basis) then
       call read_basis_internal(basis_name, fitting_name, M, Md, n_atoms, norm, &
@@ -758,6 +763,7 @@ subroutine read_basis_internal(basis_file, fitting_file, n_funcs, n_fits,     &
                                iostatus)
    use basis_data   , only: ANG_DEG
    use constants_mod, only: PI32
+   use lr_data, only: lresp, cbas
    implicit none
    integer         , intent(in)  :: max_con_per_atom, max_fun_per_atom, &
                                     n_atoms, atom_Z(n_atoms), n_funcs, n_fits
@@ -860,6 +866,7 @@ subroutine read_basis_internal(basis_file, fitting_file, n_funcs, n_fits,     &
                                                   (expo_temp(index)) ** 3 ) / &
                                                   PI32) * coef_temp(index)
                            expo(n_orig, icount) = expo_temp(index)
+                           if(lresp) cbas(n_orig,icount) = coef_temp(index)
                         case (1)
                            craw(n_orig, icount) = coef(n_orig, icount)
                            coef(n_orig, icount) = dsqrt( dsqrt(8.0D0 * &
@@ -867,6 +874,7 @@ subroutine read_basis_internal(basis_file, fitting_file, n_funcs, n_fits,     &
                                                   4.0D0 * expo_temp(index) /  &
                                                   PI32) * coef_temp(index)
                            expo(n_orig, icount) = expo_temp(index)
+                           if(lresp) cbas(n_orig,icount) = coef_temp(index)
                         case (2)
                            craw(n_orig, icount) = coef(n_orig, icount)
                            coef(n_orig, icount) = dsqrt( dsqrt(8.0D0 * &
@@ -874,6 +882,7 @@ subroutine read_basis_internal(basis_file, fitting_file, n_funcs, n_fits,     &
                                                   16.0D0 * expo_temp(index)**2/&
                                                   PI32) * coef_temp(index)
                            expo(n_orig, icount) = expo_temp(index)
+                           if(lresp) cbas(n_orig,icount) = coef_temp(index)
                         case default
                            iostatus = 1
                            write(*,'(A)') "  ERROR: Basis set contains "    , &
@@ -1007,6 +1016,7 @@ end subroutine read_basis_internal
 
 subroutine reorder_basis(expon, coeff, atom_of_funct, n_cont, mixed_index, &
                          basis_size, max_cont, l_of_funct, n_shell, craw)
+   use lr_data, only: lresp, fbas, cbas, cbasx
    implicit none
    integer         , intent(in)    :: basis_size, max_cont, n_shell(0:3), &
                                       l_of_funct(basis_size)
@@ -1038,6 +1048,7 @@ subroutine reorder_basis(expon, coeff, atom_of_funct, n_cont, mixed_index, &
          expo_t(s_index,:)        = expon(ifunct,:)
          coef_t(s_index,:)        = coeff(ifunct,:)
          if (present(craw)) craw_t(s_index,:) = craw(ifunct,:)
+         if (fbas .eqv. lresp) cbasx(s_index,:) = cbas(ifunct,:)
 
          s_index = s_index +1
       case (1) ! p functions
@@ -1047,6 +1058,7 @@ subroutine reorder_basis(expon, coeff, atom_of_funct, n_cont, mixed_index, &
          expo_t(p_index,:)        = expon(ifunct,:)
          coef_t(p_index,:)        = coeff(ifunct,:)
          if (present(craw)) craw_t(p_index,:) = craw(ifunct,:)
+         if (fbas .eqv. lresp) cbasx(p_index,:) = cbas(ifunct,:)
 
          p_index = p_index +1
       case (2) ! d functions
@@ -1056,6 +1068,7 @@ subroutine reorder_basis(expon, coeff, atom_of_funct, n_cont, mixed_index, &
          expo_t(d_index,:)        = expon(ifunct,:)
          coef_t(d_index,:)        = coeff(ifunct,:)
          if (present(craw)) craw_t(d_index,:) = craw(ifunct,:)
+         if (fbas .eqv. lresp) cbasx(d_index,:) = cbas(ifunct,:)
 
          d_index = d_index +1
       case default
@@ -1067,6 +1080,10 @@ subroutine reorder_basis(expon, coeff, atom_of_funct, n_cont, mixed_index, &
    expon         = expo_t
    coeff         = coef_t
    if (present(craw)) craw = craw_t
+   if (fbas .eqv. lresp) then 
+      cbas = cbasx
+      fbas = .false.
+   endif
    deallocate(expo_t, coef_t, atom_of_funct_t, n_cont_t, craw_t)
 end subroutine reorder_basis
 

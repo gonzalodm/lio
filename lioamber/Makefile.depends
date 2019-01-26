@@ -193,7 +193,7 @@ $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/debug_tools.mod
 OBJECTS += basis_data.o
 
 tmplist :=
-tmplist += ehrensubs.o init_lio.o lio_finalize.o lrtddft.o
+tmplist += ehrensubs.o init_lio.o lio_finalize.o lr_data.o
 $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/basis_data.mod
 
 ################################################################################
@@ -304,9 +304,8 @@ $(modusrs:%.o=$(OBJPATH)/%.o) : ${OBJPATH}/cubegen.mod
 OBJECTS += lrtddft.o
 
 tmplist :=
-tmplist += SCF.o lionml_data.o init_lio.o drive.o
+tmplist += SCF.o lionml_data.o basis_data.o
 $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/lrtddft.mod
-
 
 ################################################################################
 # TO-DO: reformulate the following modules so that there exists mathcpu,

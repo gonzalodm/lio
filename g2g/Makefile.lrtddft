@@ -22,8 +22,8 @@ endif
 
 ifeq ($(DO_lrtddft),1)
     eri_src=lrtddft/eri.cpp
-    SRCS         += lrtddft/couplingform.cpp lrtddft/eri.cpp lrtddft/lrkernel.cpp
-    OBJ          += lrtddft/eri.o lrtddft/lrkernel.o lrtddft/couplingform.o
+    SRCS         += lrtddft/couplingform.cpp lrtddft/eri.cpp lrtddft/lrkernel.cpp lrtddft/gfactor.cpp lrtddft/calc_coef.cpp
+    OBJ          += lrtddft/eri.o lrtddft/lrkernel.o lrtddft/couplingform.o lrtddft/gfactor.o lrtddft/calc_coef.o
 lrtddft/eri.o: $(eri_src)
 	$(CXX) -std=c++11 $(CXXFLAGS) $(INCS_LIBINT) -c $< -o $@
 else

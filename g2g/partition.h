@@ -137,7 +137,8 @@ class PointGroup {
                      double&, double&, double&, double&, HostMatrix<double>&,
                      int, HostMatrix<double>&, bool) = 0;
 
-  virtual void solve_closed_lr(double* calcK) = 0;
+  virtual void solve_closed_lr(double* T,double* C,double* F,int& NCO) = 0;
+  virtual void solve_3rd_der(double* Tmat,double* F,int& DER) = 0;
 
   bool is_significative(FunctionType, double exponent, double coeff, double d2);
 
@@ -186,7 +187,8 @@ class PointGroupCPU : public PointGroup<scalar_type> {
                      int, HostMatrix<double>&, bool);
 
   virtual void get_coef_input(G2G::HostMatrix<scalar_type>& rmm_input,int* nume) const;
-  virtual void solve_closed_lr(double* calcKfxc);
+  virtual void solve_closed_lr(double* T,double* C,double* F,int& NCO);
+  virtual void solve_3rd_der(double* Tmat,double* F,int& DER);
 
 
   typedef vec_type<scalar_type, 2> vec_type2;
@@ -220,7 +222,8 @@ class PointGroupGPU: public PointGroup<scalar_type> {
         bool compute_energy, double& energy, double &, double &, double &, double &,
         HostMatrix<double> &, int, HostMatrix<double> &, bool);
 
-    virtual void solve_closed_lr(double* calcKfxc);
+    virtual void solve_closed_lr(double* T,double* C,double* F,int& NCO);
+    virtual void solve_3rd_der(double* Tmat,double* F,int& DER);
 
     typedef vec_type<scalar_type,2> vec_type2;
     typedef vec_type<scalar_type,3> vec_type3;
@@ -251,7 +254,8 @@ class Partition {
     void compute_functions(bool forces, bool gga);
     void rebalance(std::vector<double> &, std::vector<double> &);
 
-    void solve_lr(double* K,double* K_int, double* Coef);
+    void solve_lr(double* T,double* C,double* F,int& NCO);
+    void solve_Gxc(double* Tmat,double* F,int& DER);
 
     std::vector<PointGroup<base_scalar_type>*> cubes;
     std::vector<PointGroup<base_scalar_type>*> spheres;

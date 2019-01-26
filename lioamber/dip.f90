@@ -402,27 +402,27 @@ subroutine dip(uDip)
    uDipAt = 0.0D0
    Qc     = 0.0D0
  
-   do i=1,natom
-       Qc  = Qc  + Iz(i)
-       uDipAt(1) = uDipAt(1) + Iz(i)*r(i,1)
-       uDipAt(2) = uDipAt(2) + Iz(i)*r(i,2)
-       uDipAt(3) = uDipAt(3) + Iz(i)*r(i,3)
-   enddo
+!   do i=1,natom
+!       Qc  = Qc  + Iz(i)
+!       uDipAt(1) = uDipAt(1) + Iz(i)*r(i,1)
+!       uDipAt(2) = uDipAt(2) + Iz(i)*r(i,2)
+!       uDipAt(3) = uDipAt(3) + Iz(i)*r(i,3)
+!   enddo
 
-   Qc=Qc-nElec
-   if (sol) then
-       do k=1,Nsol
-           Qc = Qc + pc(k)
-       enddo
-   endif
+!   Qc=Qc-nElec
+!   if (sol) then
+!       do k=1,Nsol
+!           Qc = Qc + pc(k)
+!       enddo
+!   endif
 
 ! Factor : For charged species dipole moment depends on the definition of the  !
 ! coordinates' origin. Using this factor, it is defined with respect to the    !
 ! center of charge (important in Reaction Field calculations). For neutral     !
 ! systems this is not necessary.                                               !
 
-   factor = (Qc + nElec)/nElec
-   uDip = (uDipAt - uDip*factor) * 2.54D0
+!   factor = (Qc + nElec)/nElec
+!   uDip = (uDipAt - uDip*factor) * 2.54D0
  
    return
 end subroutine dip

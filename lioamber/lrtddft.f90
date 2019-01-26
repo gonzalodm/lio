@@ -1,16 +1,19 @@
 module lr_data
 !Nvirt = number of virtual molecular orbitals
 !dim = dimension of matrix Linear Response (Nvirt x NCO)
-!cbas = Needed for libint (Temporary)
+!cbas,cbasx = Needed for libint (Temporary)
 !nstates = number of excited states to calculate
 !root = excited state chosen for optimization
    implicit none
 
    logical :: lresp = .false.
+   logical :: fbas = .true.
    integer :: Nvirt, dim, NCOlr, Mlr
    integer :: nstates = 3
    integer :: root = 0
-   real*8, dimension(:,:), allocatable :: eigenvec, cbas
+   ! PASOS EN LR EN DINAMICA
+   integer :: StepLR = 0
+   real*8, dimension(:,:), allocatable :: eigenvec, cbas, cbasx
    real*8, dimension(:), allocatable :: eigenval
 ! Use Frozen Core Approximation
 ! nfo = number of molecular orbitals occupied with lowest energy deleted
@@ -32,23 +35,31 @@ contains
                       eigenvec,cbas,root,FCA,nfo,nfv,&
                       NCOlr, Mlr
    use garcha_mod, only: NCO, M, c, a
-   use basis_data, only: c_raw, max_c_per_atom
-
    implicit none
 
    real*8, intent(in) :: MatCoef(M,M)
    real*8, intent(in) :: VecEne(M)
 
-   integer :: i
+!  COUNTERS
+   integer :: i, j, k
+!  IF FCA IS USED
    real*8, dimension(:), allocatable :: Ene_LR
-   real*8, dimension(:,:), allocatable :: KMO, A_mat, Coef_LR
-   real*8, dimension(:,:,:,:), allocatable :: KAO
+   real*8, dimension(:,:), allocatable :: Coef_LR
+   real*8, dimension(:,:,:,:), allocatable :: K2eAO
+!  DAVIDSON OPTIONS
+   integer :: maxIter, iter ! ITERATION
+   integer :: vec_dim, iv, first_vec, newvec ! VECTOR INDEXES
+   integer :: max_subs, Subdim ! DIMENSION SUBSPACE
+   real*8, dimension(:,:), allocatable :: tvecMO,vmatAO,Fv,AX,H,eigvec
+   real*8, dimension(:,:), allocatable :: RitzVec,ResMat
+   real*8, dimension(:), allocatable :: eigval, val_old, Osc
+   real*8, dimension(:,:,:), allocatable :: tmatMO,tmatAO,FM2,FXC
+   integer :: calc_2elec = 0
+   logical :: conv = .false.
 
    call g2g_timer_start('LINEAR RESPONSE')
-   if (.not. allocated(cbas)) allocate(cbas(M, max_c_per_atom))
-   cbas = c_raw
 
-! Initialization of variables
+! INITIALIZATION OF VARIABLES IF FCA IS USED
    if (FCA .eqv. .true.) then
    print*,"Using Frozen Core Approximation"
    print*,"nfo, nfv", nfo, nfv
@@ -76,137 +87,401 @@ contains
       Ene_LR = VecEne
    endif
 
-   allocate(KMO(dim,dim),A_mat(dim,dim))
-   allocate(KAO(M,M,M,M))
-
-   KAO = 0.0D0
-   KMO = 0.0D0
-
    print*, ""
-   print*,"#######################################"
+   print*,"======================================="
    print*,"         LINEAR RESPONSE - TDA"
-   print*,"#######################################"
+   print*,"======================================="
    print*, ""
 
-   call g2g_timer_start('g2g_LinearResponse')
-   call g2g_linear_response(Coef_LR,KMO,KAO,cbas,dim,NCOlr,Nvirt)
-   call g2g_timer_stop('g2g_LinearResponse')
-   deallocate(KAO)
-
-   call g2g_timer_start('ObtainMatrix')
-   call ObtainAmatrix(A_mat,KMO,Ene_LR,dim,Mlr,NCOlr)
-   call g2g_timer_stop('ObtainMatrix')
-   deallocate(KMO)
-
-   call g2g_timer_start('Davidson')
-   call davidson(A_mat,dim,eigenval,eigenvec,nstates)
-   call g2g_timer_stop('Davidson')
-   deallocate(A_mat)
-
-   call PrintResults(eigenvec,eigenval,dim,nstates)
-
-   if(root > 0) then
-     call UnDensExc(eigenvec(:,root),Coef_LR,dim)
+!  CHECK INPUT VARIABLES
+   if (nstates > dim) then
+      print*, "NUMBER OF EXCITED STATES THAT YOU WANT IS BIGGER &
+               THAN DIMENSION MATRIX"
+      nstates = dim
+      print*, "WE CALCULATED", nstates
    endif
-   deallocate(eigenvec,eigenval)
-   deallocate(Coef_LR,Ene_LR)
 
-   call g2g_timer_stop('LINEAR RESPONSE')
+!  DAVIDSON INITIALIZATION
+   allocate(val_old(nstates),Osc(nstates))
+
+   val_old = 1.0D0
+   vec_dim = 4 * nstates
+   first_vec = 0
+   newvec = 0
+
+   if(vec_dim >= dim) then
+      vec_dim = dim
+      Subdim = dim
+      maxIter = 1
+      max_subs = dim
+      allocate(AX(dim,dim))
+      allocate(tvecMO(dim,dim))
+   else
+      max_subs = 200
+      if (max_subs > dim) max_subs = dim
+      maxIter = 50
+      Subdim = vec_dim
+      allocate(AX(dim,max_subs))
+      allocate(tvecMO(dim,max_subs))
+   endif
+
+!  INITIAL GUESS
+   call vec_init(tvecMO,dim,vec_dim)
+
+! SAVE INTEGRALS COULOMP TYPE
+   allocate(K2eAO(M,M,M,M),vmatAO(M,M),Fv(M,M))
+   allocate(RitzVec(dim,nstates),ResMat(dim,nstates))
+   K2eAO = 0.0D0; vmatAO = 0.0D0; Fv = 0.0D0; RitzVec = 0.0D0
+
+!  PRINT INFORMATION
+   write(*,"(1X,A,22X,I2,2X,I2,2X,I2)") "NCO, NVIRT, M",NCO,Nvirt,M
+   write(*,"(1X,A,11X,I3)") "DIMENSION OF FULL MATRIX",dim
+   write(*,"(1X,A,23X,I3)") "MAX SUBSPACE",max_subs
+   write(*,"(1X,A,20X,I2)") "MAX ITERATIONES",maxIter
+   write(*,"(1X,A,3X,I4)") "NUMBER OF INITIAL TRIALS VECTORS",vec_dim
+
+!  DAVIDSON START
+   do iter=1,maxIter
+      write(*,"(A)") " "
+      write(*,"(1X,A,6X,I2)") "ITERATION:",iter
+      write(*,"(1X,A,7X,I4)") "SUBSPACE:",Subdim
+      write(*,"(1X,A,1X,I4)") "VECTORS INSIDE:",vec_dim
+      write(*,"(1X,A,4X,I2)") "LAST VECTOR:",first_vec
+
+!    CHANGE VECTORS TO MATRIX IN OM
+     if(allocated(tmatMO)) deallocate(tmatMO)
+        allocate(tmatMO(M,M,vec_dim))
+     call vecMOtomatMO(tvecMO,tmatMO,M,NCO,Nvirt, &
+                       Subdim,vec_dim,first_vec,dim)
+
+!    CHANGE BASIS MO -> AO FOR EACH VECTOR
+     if(allocated(tmatAO)) deallocate(tmatAO)
+        allocate(tmatAO(M,M,vec_dim))
+     call matMOtomatAO(tmatMO,tmatAO,Coef_LR,M,vec_dim)
+
+!    CALCULATE 2E INTEGRALS
+     allocate(FM2(M,M,vec_dim)); FM2 = 0.0D0
+     call g2g_calculate2e(tmatAO,K2eAO,cbas,vec_dim,FM2,calc_2elec)
+     calc_2elec = 1 ! TURN OFF CALCULATE INTEGRALS
+
+!    CALCULATE DFT INTEGRALS
+     allocate(FXC(M,M,vec_dim)); FXC = 0.0D0
+     do iv=1,vec_dim ! LOOPS VECTORS INSIDE OF CYCLE
+        call formred(tmatMO,Coef_LR,vmatAO,M,dim,vec_dim,iv) ! FORM T * C**T
+        call g2g_calculatedft(vmatAO,Coef_LR,Fv,NCO)
+        call formbig(Fv,FXC,M,vec_dim,iv)
+     enddo ! END LOOPS VECTORS
+
+     FM2 = FM2 + FXC ! ADD INTEGRALS 
+     deallocate(FXC)
+
+!    WE OBTAIN AX (NDIM x NVEC)
+     call MtoIANV(FM2,Coef_LR,AX,M,NCO,dim, &
+                  Subdim,vec_dim,first_vec)
+     deallocate(FM2)
+
+!    ADD (Ea - Ei)*Xia TO AX
+     call addInt(AX,Ene_LR,tvecMO,dim,M, &
+                 Subdim,NCO,vec_dim,first_vec)
+
+!    WE OBTAIN SUBSPACE MATRIX
+     if(allocated(H)) deallocate(H)
+       allocate(H(Subdim,Subdim))
+     call subspaceMat(AX,tvecMO,H,dim,Subdim)
+
+!    DIAGONALIZATION OF SUBSPACE MATRIX
+     if(allocated(eigvec)) deallocate(eigvec)
+     if(allocated(eigval)) deallocate(eigval)
+       allocate(eigvec(Subdim,Subdim),eigval(Subdim))
+     call diagonH(H,Subdim,eigval,eigvec)
+
+!    CHANGE SUBSPACE TO FULL SPACE - OBTAIN RITZ VECTOR
+     call RitzObtain(tvecMO,eigvec,RitzVec,dim,Subdim,nstates)
+
+     if (maxIter == 1) then
+       call OscStr(RitzVec,eigval,Coef_LR,Osc,M,NCO,Nvirt,dim,nstates)
+       call PrintResults(RitzVec,eigval,Osc,dim,nstates)
+       exit
+     endif
+
+!    OBTAIN RESIDUAL VECTORS
+     call residual(eigval,eigvec,RitzVec,AX,ResMat, &
+                   dim,Subdim,nstates)
+
+!    CHECK CONVERGENCE AND ADD NEW VECTORS
+     conv = .false. ; newvec = 0
+     call new_vectors(ResMat,eigval,Ene_LR,tvecMO,val_old, &
+                      dim,Subdim,nstates,M,NCO,newvec,conv)
+
+     if(conv .eqv. .true.) then
+       write(*,"(1X,A,I2,1X,A)") "CONVERGED IN:",iter,"ITERATIONS"
+       call OscStr(RitzVec,eigval,Coef_LR,Osc,M,NCO,Nvirt,dim,nstates)
+       call PrintResults(RitzVec,eigval,Osc,dim,nstates)
+       exit
+     else
+!      ACTUALIZATION OF VECTORS INDEXES
+       first_vec = Subdim 
+       Subdim = Subdim + newvec
+       vec_dim = newvec
+     endif
+   enddo !END DAVIDSON
+
+   if (root > 0 ) then
+     write(*,"(1X,A,I2)") "FORM RELAXED DENSITY FOR EXICTED STATE:",root
+     call Zvector(Coef_LR,Ene_LR,RitzVec(:,root),K2eAO,NCO,M,dim)
+   endif
+   
+   deallocate(K2eAO,vmatAO,Fv,RitzVec,ResMat,val_old,Osc,eigval,eigvec)
    end subroutine linear_response
 
-   subroutine ObtainAmatrix(A,Kcou,VecE,N,M,NCO)
-   implicit none
+   subroutine vec_init(Vec,N,vecnum)
+      implicit none
 
-   integer, intent(in) :: N, M, NCO
-   real*8, intent(in) :: Kcou(N,N),VecE(M)
-   real*8, intent(out) :: A(N,N)
+      integer, intent(in) :: N, vecnum
+      real*8, intent(out) :: Vec(N,vecnum)
 
-   integer :: k,l,i,j !counters
+      integer :: i
+  
+      Vec = 0.0D0
+      do i=1,vecnum
+         Vec(i,i) = 1.0D0
+      enddo
+   end subroutine vec_init
 
-   k = NCO
-   l = NCO + 1
-   do i=1,N
-     A(i,i) = Kcou(i,i) + VecE(l) - VecE(k)
-     l = l + 1
-     if (l > M) then
-       l = NCO + 1
-       k = k - 1
-     endif
-   enddo
-   do i=1,N
-     do j=1,i-1
-         A(j,i) = Kcou(i,j)
-         A(i,j) = A(j,i)
+   subroutine vecMOtomatMO(vec,mat,M,NCO,Nvirt,Sdim,Nvec,V1,dim)
+      implicit none
+  
+      integer, intent(in) :: M, NCO, Nvirt, Nvec, V1, dim, Sdim
+      real*8, intent(in) :: vec(dim,Sdim)
+      real*8, intent(out) :: mat(M,M,Nvec)
+  
+      integer :: i,row,col,NCOc
+
+      NCOc = NCO - 1
+      mat = 0.0D0
+     
+      do i=1,Nvec
+        do row=0,NCOc
+        do col=1,Nvirt
+           mat(NCOc-row+1,NCO+col,i) = vec(row*Nvirt+col,V1+i)
+        enddo
+        enddo
+      enddo
+   end subroutine vecMOtomatMO
+
+   subroutine matMOtomatAO(MatMO,MatAO,C,M,numvec)
+      implicit none
+
+      integer, intent(in) :: M, numvec
+      real*8, intent(in) :: MatMO(M,M,numvec)
+      real*8, intent(in) :: C(M,M)
+      real*8, intent(out) :: MatAO(M,M,numvec)
+
+      integer :: i, j, k
+      real*8, dimension(:,:), allocatable :: CT, scratch
+
+      allocate(CT(M,M))
+      do i=1,M
+      do j=1,M
+         CT(j,i) = C(i,j)
+      enddo
+      enddo
+   
+      MatAO = 0.0D0
+
+! PASAMOS LA MATRIZ EN OM DE LOS VECTORES A MATRIZ EN AO
+      allocate(scratch(M,M))
+      do i=1,numvec
+         scratch = matmul(MatMO(:,:,i),CT)
+         MatAO(:,:,i) = matmul(C,scratch)
+      enddo
+
+! PASAMOS MatAO A LA TRANSPUESTA PARA LUEGO USARLA EN C
+      do i=1,numvec
+        scratch = MatAO(:,:,i)
+        do j=1,M
+        do k=1,M
+           MatAO(k,j,i) = scratch(j,k)
+        enddo
+        enddo
+      enddo
+      deallocate(scratch,CT)
+   end subroutine matMOtomatAO
+
+   subroutine formred(TmatMO,C,VecMOAO,M,dim,numvec,iv)
+     implicit none
+
+     integer, intent(in) :: M, dim, iv, numvec
+     real*8, intent(in) :: TmatMO(M,M,numvec)
+     real*8, intent(in) :: C(M,M)
+     real*8, intent(out) :: VecMOAO(M,M)
+
+     real*8, dimension(:,:), allocatable :: CT, scratch
+     integer :: i, j
+
+     allocate(CT(M,M),scratch(M,M))
+     ! TRANSPOSE OF COEF MATRIX
+     do i=1,M
+     do j=1,M
+       CT(i,j) = C(j,i)
      enddo
-   enddo
-   end subroutine ObtainAmatrix
+     enddo
+ 
+     scratch = matmul(TmatMO(:,:,iv),CT(:,:))
 
-   subroutine davidson(A,N,eigval,eigvec,Nstat)
-   ! This subroutine not performs Davidson Diagonalization, instead performs
-   ! DQDS algorithm
-   ! TODO: Direct Davidson Iterative Diagonalization
+     ! FORM TRANSPOSE FOR USE IT IN C
+     do i=1,M
+     do j=1,M
+        VecMOAO(i,j) = scratch(j,i)
+     enddo
+     enddo
+
+     deallocate(CT,scratch)
+   end subroutine formred
+
+   subroutine formbig(Fv,FXC,M,numvec,iv)
+      implicit none
+
+      integer, intent(in) :: M, numvec, iv
+      real*8, intent(inout) :: Fv(M,M)
+      real*8, intent(inout) :: FXC(M,M,numvec)
+      
+      integer :: i, j
+
+      do i=1,M
+      do j=i,M
+         FXC(i,j,iv) = Fv(i,j)
+         FXC(j,i,iv) = Fv(i,j)
+      enddo
+      enddo
+      Fv = 0.0D0
+   end subroutine formbig
+  
+   subroutine MtoIANV(F,C,A,M,NCO,Ndim,Sdim,Nvec,V1)
+      implicit none
+
+      integer, intent(in) :: M, Ndim, Nvec, NCO, V1, Sdim
+      real*8, intent(in) :: F(M,M,Nvec), C(M,M)
+      real*8, intent(inout) :: A(Ndim,Sdim)
+
+      integer :: i, j, k, iv, row, Nvirt, NCOc
+      real*8, dimension(:,:), allocatable :: CTocc
+      real*8, dimension(:,:), allocatable :: B
+ 
+      real*8 :: temp
+
+      Nvirt = M - NCO
+      NCOc = NCO + 1
+      allocate(CTocc(NCO,M),B(NCO,M))
+      do i=1,NCO
+      do j=1,M
+         CTocc(i,j) = C(j,i)
+      enddo
+      enddo
+
+      temp = 0.0D0
+      do iv=1,Nvec
+        B = matmul(CTocc(:,:),F(:,:,iv))
+        do i=1,NCO
+        do j=NCOc,M
+          do k=1,M
+            temp = temp + B(NCOc-i,k) * C(k,j)
+          enddo
+          row = (i-1) * Nvirt + (j-NCO)
+          A(row,V1+iv) = temp
+          temp = 0.0D0
+        enddo
+        enddo
+      enddo
+      deallocate(CTocc,B)
+   end subroutine MtoIANV
+
+   subroutine addInt(A,Ene,Vec,Ndim,M,Sdim,NCO,Nvec,V1)
+      implicit none
+      
+      integer, intent(in) :: Ndim, M, NCO, Nvec, V1, Sdim
+      real*8, intent(in) :: Ene(M), Vec(Ndim,Sdim)
+      real*8, intent(inout) :: A(Ndim,Sdim)
+
+      integer :: iv, i, j, Nvirt, NCOc, row
+
+      Nvirt = M - NCO
+      NCOc = NCO + 1
+      do iv=1,Nvec
+        do i=1,NCO
+        do j=NCOc,M
+          row = (i-1) * Nvirt + (j-NCO)
+          A(row,V1+iv) = A(row,V1+iv) + (Ene(j) - Ene(NCOc-i)) * Vec(row,V1+iv)
+        enddo
+        enddo
+      enddo
+   end subroutine addInt
+
+   subroutine subspaceMat(A,V,H,Ndim,Sdim)
+      implicit none
+ 
+      integer, intent(in) :: Ndim, Sdim
+      real*8, intent(in) :: A(Ndim,Sdim), V(Ndim,Sdim)
+      real*8, intent(out) :: H(Sdim,Sdim)
+
+      integer :: i, j, k
+      real*8, dimension(:,:), allocatable :: VT
+
+      allocate(VT(Sdim,Ndim))
+      do i=1,Ndim
+      do j=1,Sdim
+         VT(j,i) = V(i,j)
+      enddo
+      enddo
+
+      H = matmul(VT,A)
+      deallocate(VT)
+   end subroutine subspaceMat
+
+   subroutine diagonH(H,N,Val,Vec)
    implicit none
 
-   integer, intent(in) :: N, Nstat
-   real*8, intent(inout) :: A(N,N)
-   real*8, dimension(:,:), allocatable, intent(out) :: eigvec
-   real*8, dimension(:), allocatable, intent(out) :: eigval
+   integer, intent(in) :: N
+   real*8, intent(in) :: H(N,N)
+   real*8, intent(out) :: Val(N),Vec(N,N)
 
-   integer :: IL, IU, num, LWORK, LIWORK, info
-   integer, dimension(:), allocatable :: IWORK, ISUPPZ
-   real*8 :: VL = 1.0 !NOT REFERENCE
-   real*8 :: VU = 20.0 !NOT REFERENCE
-   real*8 :: ABSTOL = 1.0E-10
    real*8, dimension(:), allocatable :: WORK
+   integer, dimension(:), allocatable :: IWORK
+   real*8 :: WI(N)
+   integer :: i, j, info, LWORK, LIWORK
 
-   IL = 1
-   IU = Nstat
-   num = IU - IL + 1
+   Vec = H
    LWORK = -1
    LIWORK = -1
 
-   allocate(ISUPPZ(2*N),WORK(1),IWORK(1),eigvec(N,Nstat),eigval(N))
-   
-   call DSYEVR('V','I','U',N,A,N,VL,VU,IL,IU,ABSTOL,num,eigval,&
-               eigvec,N,ISUPPZ,WORK,LWORK,IWORK,LIWORK,info)
-   if(info /= 0) then
-     print*, "ERROR IN DSYEVR 1"
-     stop
-   endif
-
-   LWORK = WORK(1)
-   LIWORK = IWORK(1)
+   allocate(WORK(1),IWORK(1))
+   call dsyevd('V','U',N,Vec,N,Val,WORK,LWORK,IWORK,LIWORK,info)
+   LWORK=WORK(1)
+   LIWORK=IWORK(1)
+   deallocate(WORK,IWORK); allocate(WORK(LWORK),IWORK(LIWORK))
+   call dsyevd('V','U',N,Vec,N,Val,WORK,LWORK,IWORK,LIWORK,info)
    deallocate(WORK,IWORK)
-   allocate(WORK(LWORK),IWORK(LIWORK))
-   
-   call DSYEVR('V','I','U',N,A,N,VL,VU,IL,IU,ABSTOL,num,eigval,&
-               eigvec,N,ISUPPZ,WORK,LWORK,IWORK,LIWORK,info)
-   if(info /= 0) then
-     print*, "ERROR IN DSYEVR 2"
-     stop
-   endif
+   end subroutine diagonH
 
-   deallocate(WORK,IWORK,ISUPPZ)
-   end subroutine davidson
-  
-   subroutine PrintResults(vec,val,N,nstat)
+   subroutine PrintResults(vec,val,O,N,nstat)
    use lr_data, only: Mlr, NCOlr, nfo
-!   use garcha_mod, only: M,NCO
    implicit none
 
    integer, intent(in) :: N, nstat
-   real*8, intent(in) :: vec(N,nstat),val(nstat)
+   real*8, intent(in) :: vec(N,nstat),val(nstat),O(nstat)
 
    integer :: i,j,from,to
+   real*8 :: value_X
 
    from = NCOlr
    to = NCOlr + 1
 
    do j=1, nstat
-   write(*,100) j,val(j)
+   write(*,100) j, val(j), 45.56335D0/val(j), O(j)
    do i=1, N
-      if ( abs(vec(i,j)) > 0.1D0 ) then
-         write(*,101) from+nfo, to+nfo, vec(i,j)
+      value_X = vec(i,j) / dsqrt(2.0D0)
+      if ( abs(value_X) > 0.1D0 ) then
+         write(*,101) from+nfo, to+nfo, value_X
       endif
       to = to + 1
       if ( to == Mlr+1 ) then
@@ -219,80 +494,840 @@ contains
       to = NCOlr + 1
    enddo
 
-   100 FORMAT(1X,"STATE",I2,3X,"ENERGY=",F14.7," Hartree")
+   100 FORMAT(1X,"STATE ",I2,3X,"ENERGY=",F8.4," Hartree, ",F12.6," nm"," OSC=",F8.4)
    101 FORMAT(6X,I2," -> ",I2,2X,F14.7)
    end subroutine PrintResults
 
-   subroutine UnDensExc(vec,Coef,N)
-!The excited state density matrix is constructed as:
-!  PEat = PFat + dPat
-!PEat = excited state density matrix in AO basis
-!PFat = ground state density matrix in AO basis
-!dPat = diference density matrix in AO basis
-   use lr_data, only: Mlr, NCOlr, Nvirt
-   use garcha_mod, only: M, RMM
-   implicit none
+   subroutine RitzObtain(V,Vsmall,R,Ndim,Sdim,Nstat)
+      implicit none
 
-   integer, intent(in) :: N
-   real*8, intent(in) :: vec(N),Coef(M,Mlr)
+      integer, intent(in) :: Ndim, Sdim, Nstat
+      real*8, intent(in) :: V(Ndim,Sdim), Vsmall(Sdim,Nstat)
+      real*8, intent(out) :: R(Ndim,Nstat)
+   
+      R = matmul(V,Vsmall)
+   end subroutine RitzObtain
 
-   real*8, dimension(:,:), allocatable :: Pij, Pab, dPat, X, PEat, PFat,&
-                                          Xtrans, Cocc, Cnvirt, CTocc,&
-                                          CTnvirt
+   subroutine residual(Val,Vec,R,A,W,Ndim,Sdim,Nstat)
+      implicit none
 
-   integer :: i,j,a,b,row,col,NCOc,Nij,Nab,M2
+      integer, intent(in) :: Ndim, Sdim, Nstat
+      real*8, intent(in) :: Val(Nstat), Vec(Sdim,Nstat), R(Ndim,Nstat)
+      real*8, intent(in) :: A(Ndim,Sdim)
+      real*8, intent(out) :: W(Ndim,Nstat)
 
-   allocate(Pij(NCOlr,NCOlr),Pab(Nvirt,Nvirt),X(NCOlr,Nvirt),Xtrans(Nvirt,NCOlr))
-   Pij = 0.0D0
-   Pab = 0.0D0
-   X = 0.0D0
+      integer :: i
+      real*8, dimension(:), allocatable :: temp
 
-   do row=0,NCOlr-1
-   do col=1,Nvirt
-     X(row+1,col) = vec(row*Nvirt+col)
-     Xtrans(col,row+1) = vec(row*Nvirt+col)
-   enddo
-   enddo
+      allocate(temp(Ndim))
+      do i=1,Nstat
+        temp = matmul(A(1:Ndim,1:Sdim),Vec(1:Sdim,i)) - Val(i) * R(1:Ndim,i)
+        W(1:Ndim,i) = temp
+      enddo
+      deallocate(temp)
+   end subroutine residual
 
-!Form block Diference Density Matrix occ-occ in MO basis
-   Pij = -1.0D0*matmul(X,Xtrans)
+   subroutine norma(V,N,norm)
+      implicit none
 
-!Form block Diference Density Matrix nvirt-nvirt in MO basis
-   Pab = matmul(Xtrans,X)
+      integer, intent(in) :: N
+      real*8, intent(in) :: V(N)
+      real*8,intent(out) :: norm
 
-   deallocate(X,Xtrans)
-   allocate(dPat(M,M),Cocc(M,NCOlr),Cnvirt(M,Nvirt))
-   allocate(CTocc(NCOlr,M),CTnvirt(Nvirt,M))
+      integer :: i
 
-!Form All Diference Density Matrix in AO basis
-   ! Form block occ - occ
-   NCOc = NCOlr + 1
-   do i=1,NCOlr
-      Cocc(:,i) = Coef(:,NCOc-i)
-      CTocc(i,:) = Coef(:,NCOc-i)
-   enddo
-   dPat=matmul(Cocc,matmul(Pij,CTocc))
-   deallocate(Cocc,CTocc)
+      norm = 0.0d0
+      do i=1,N
+        norm = norm + V(i)*V(i)
+      enddo
+    end subroutine norma
 
-   ! Form block virt - virt 
-   do i=1,Nvirt
-      Cnvirt(:,i) = Coef(:,NCOlr+i)
-      CTnvirt(i,:) = Coef(:,NCOlr+i)
-   enddo
-   dPat = dPat + matmul(Cnvirt,matmul(Pab,CTnvirt))
-   deallocate(Cnvirt,CTnvirt)
-   deallocate(Pij,Pab)
+    subroutine new_vectors(R,Esub,Eall,T,Eold,Ndim,Sdim,Nstat,M,NCO,New,conv)
+       implicit none
 
-! Extract Rho of ground state
-   allocate(PFat(M,M),PEat(M,M))
-   call spunpack_rho('L',M,RMM,PFat)
+       integer, intent(in) :: Ndim, Sdim, Nstat, M, NCO
+       real*8, intent(in) :: R(Ndim,Nstat), Esub(Nstat), Eall(M)
+       real*8, intent(inout) :: T(Ndim,Sdim+Nstat), Eold(Nstat)
+       logical, intent(out) :: conv
+       integer, intent(out) :: New
 
-!Form Unrelaxed Excited State Density Matrix in AO basis
-   do i=1,M
-   do j=1,M
-     PEat(i,j) = PFat(i,j) + dPat(i,j)
-   enddo
-   enddo
-   deallocate(PFat,PEat,dPat)
-   end subroutine UnDensExc
+       integer :: i, iv, occ, virt, Nvirt, ind, NCOc
+       real*8 :: temp, ERROR, MAX_ERROR, MAX_ENE, tolv, tole, diffE
+       real*8, dimension(:,:), allocatable :: Qvec
+       integer, dimension(:), allocatable :: valid_id
+
+       allocate(Qvec(Ndim,Nstat)); Qvec = 0.0D0
+       allocate(valid_id(Nstat)); New = 0
+
+       MAX_ERROR = 0.0D0
+       MAX_ENE = 0.0D0
+       tolv = 1.0D-6
+       tole = 1.0D-6
+       Nvirt = M - NCO
+       NCOc = NCO + 1
+
+       do iv=1,Nstat
+         diffE = abs(Eold(iv) - Esub(iv))
+         if(diffE > MAX_ENE) MAX_ENE = diffE
+         write(*,"(1X,A,I2,1X,A,F14.7)") "Vector:",iv,"Change in energy:",diffE
+
+         call norma(R(:,iv),Ndim,ERROR)
+         if(ERROR > MAX_ERROR) MAX_ERROR = ERROR
+
+         print*, ERROR
+         if(ERROR > tolv .or. diffE > tole) then
+         !if(ERROR > tolv) then
+            New = New + 1
+            valid_id(New) = iv
+            do i=1,Ndim
+              ind = i - 1
+              occ = NCO - (ind/Nvirt)
+              virt = mod(ind,Nvirt) + NCOc
+              temp = Eall(virt) - Eall(occ)
+              temp = 1.0D0 / (Esub(iv) - temp)
+              Qvec(i,iv) = temp * R(i,iv)
+            enddo
+         else
+            write(*,"(1X,A,I2,1X,A)") "Vector:",iv,"Converged"
+         endif
+       enddo
+
+       if(Sdim + New >= Ndim) then
+          conv = .true.
+          return
+       endif
+
+       print*,"VEC,ENE",MAX_ERROR,MAX_ENE
+       if(MAX_ERROR < tolv .and. MAX_ENE < tole) then
+       !if(MAX_ERROR < tolv) then
+         conv = .true.
+       else
+         conv = .false.
+         do iv=1,New
+           T(:,Sdim+iv) = Qvec(:,valid_id(iv))
+         enddo
+         call QRfactorization(T,Ndim,Sdim+New)
+       endif
+
+       Eold = Esub
+       deallocate(Qvec,valid_id)
+   end subroutine new_vectors
+
+   subroutine QRfactorization(A,N,M)
+      implicit none
+
+      integer, intent(in) :: N, M
+      real*8, intent(inout) :: A(N,M)
+
+      real*8,dimension(:),allocatable :: WORK, TAU
+      integer :: i,j,LWORK,INFO,K
+      real*8 :: norma, ortog
+
+      allocate(WORK(1),TAU(M))
+      call dgeqrf(N,M,A,N,TAU,WORK,-1,INFO)
+      LWORK = WORK(1)
+      deallocate(WORK); allocate(WORK(LWORK))
+      call dgeqrf(N,M,A,N,TAU,WORK,LWORK,INFO)
+      call dorgqr(N,M,M,A,N,TAU,WORK,LWORK,INFO)
+   end subroutine QRfactorization
+
+   subroutine OscStr(X,Ene,Coef,OsSt,M,NCO,Nvirt,Ndim,Nstat)
+      implicit none
+
+      integer, intent(in) :: M, Ndim, Nstat, NCO, Nvirt
+      real*8, intent(in) :: X(Ndim,Nstat),Ene(Nstat)
+      real*8, intent(in) :: Coef(M,M)
+      real*8, intent(out) :: OsSt(Nstat)
+
+      integer :: i, j
+      real*8, dimension(:,:), allocatable :: Tdip
+      real*8, dimension(:,:,:), allocatable :: TdensAO,TdensMO
+
+      allocate(Tdip(Nstat,3),TdensMO(M,M,Nstat),TdensAO(M,M,Nstat))
+
+      ! FORM TRANSITION DENSITY IN MO BASIS
+      call vecMOtomatMO(X,TdensMO,M,NCO,Nvirt,Nstat,Nstat,0,Ndim)
+      ! CHANGE THE MO TO AO BASIS
+      call matMOtomatAO(TdensMO,TdensAO,Coef,M,Nstat)
+      deallocate(TdensMO)
+      ! CALCULATE TRANSITION DIPOLE
+      call TransDipole(TdensAO,Tdip,M,Nstat)
+      deallocate(TdensAO)
+      ! CALCULATE THE OSCILATOR STRENGHT
+      call ObtainOsc(Tdip,Ene,OsSt,Nstat)
+      deallocate(Tdip)
+   end subroutine OscStr
+
+   subroutine TransDipole(Tdens,Tdip,M,Nstat)
+      use garcha_mod, only: RMM
+      implicit none
+
+      integer, intent(in) :: M, Nstat
+      real*8, intent(inout) :: Tdens(M,M,Nstat)
+      real*8, intent(out) :: Tdip(Nstat,3)
+
+      integer :: i, j, ist
+      real*8, dimension(:,:), allocatable :: RhoRmm
+
+      ! Save Rho in Rmm
+      allocate(RhoRmm(M,M))
+      call spunpack_rho('L',M,RMM,RhoRmm)
+
+      do ist=1,Nstat
+         do i=1,M
+         do j=1,i-1
+            Tdens(i,j,ist) = Tdens(i,j,ist) + Tdens(j,i,ist)
+         enddo
+         enddo
+         call sprepack('L',M,RMM,Tdens(:,:,ist))
+         call dip(Tdip(ist,:))
+      enddo
+      Tdip = Tdip * 2.0D0 / dsqrt(2.0D0)
+
+      ! Copy Rho old in RMM
+      do i=1,M
+      do j=1,i-1
+         RhoRMM(i,j) = RhoRMM(i,j) * 2.0D0
+      enddo
+      enddo
+      call sprepack('L',M,RMM,RhoRMM)
+      deallocate(RhoRMM)
+   end subroutine TransDipole   
+   
+   subroutine ObtainOsc(dip,E,O,N)
+      implicit none
+
+      integer, intent(in) :: N
+      real*8, intent(in) :: dip(N,3), E(N)
+      real*8, intent(out) :: O(N)
+
+      integer :: i, j
+      real*8 :: dostres = 2.0D0 / 3.0D0
+      real*8 :: temp = 0.0D0
+
+      do i=1,N
+      do j=1,3
+         temp = temp + dip(i,j) * dip(i,j) * E(i) * dostres
+      enddo
+      O(i) = temp; temp = 0.0D0
+      enddo
+   end subroutine ObtainOsc
+
+   subroutine Zvector(C,Ene,X,K4cen,NCO,M,Ndim)
+   use lr_data, only: cbas
+      implicit none
+
+      integer, intent(in) :: NCO, M, Ndim
+      real*8, intent(in) :: C(M,M), Ene(M)
+      real*8, intent(in) :: X(Ndim), K4cen(M,M,M,M)
+
+      integer :: i , j, Nvirt
+      real*8, dimension(:,:), allocatable :: Tund, Xmat, Gxc
+      real*8, dimension(:,:), allocatable :: FX, FT
+      real*8, dimension(:,:,:), allocatable :: F2e, PA
+      real*8, dimension(:,:), allocatable :: FXAB, FXIJ, FTIA, GXCIA
+      real*8, dimension(:), allocatable :: Rvec
+
+      Nvirt = M - NCO
+
+      ! FORM UNRELAXED DIFFERENCE DENSITY MATRIX
+      allocate(Tund(M,M))
+      call UnDiffDens(X,Tund,NCO,Nvirt,M,Ndim)
+
+      ! CHANGE BASIS T OM -> AO
+      call MOtoAO(C,Tund,M)
+
+      ! FORM TRANSITION DENSITY MATRIX
+      allocate(Xmat(M,M)); Xmat = 0.0D0
+      call XmatForm(X,C,Xmat,Ndim,NCO,Nvirt,M)
+
+      ! CALCULATE THIRD DERIVATIVE FOCK
+      allocate(Gxc(M,M)); Gxc = 0.0D0
+      call g2g_calculateg(Xmat,Gxc,3) 
+
+      ! CALCULATE SECOND DERIVATIVE FOCK
+      allocate(FX(M,M)); FX = 0.0D0
+      call g2g_calculateg(Xmat,FX,2) 
+      allocate(FT(M,M)); FT = 0.0D0
+      call g2g_calculateg(Tund,FT,2) 
+
+      ! CALCULATE TWO ELECTRON FOCK
+      ! 1 = tiene la parte 2e de Xmat
+      ! 2 = tiene la parte 2e de Tund
+      allocate(PA(M,M,2),F2e(M,M,2)); F2e = 0.0D0
+      PA(:,:,1) = Xmat; PA(:,:,2) = Tund
+      call g2g_calculate2e(PA,K4cen,cbas,2,F2e,1)
+      F2e = 2.0D0 * F2e
+! ================================================
+! !!!  SOLO EL TRIANGULO SUPERIOR ESTA BINE       |
+!      LA PARTE DE 2e esta completa pero la de    |
+!      DFT solo se llena el triangulo superior    |
+! ================================================
+
+      ! FT + F2eT
+      FT = F2e(:,:,2) + 2.0D0 * FT
+
+      ! FX + F2eX
+      FX = F2e(:,:,1) + 2.0D0 * FX
+      deallocate(F2e)
+
+      ! CHANGE BASIS OF FOCK MATRIX
+      allocate(FXAB(Nvirt,Nvirt),FXIJ(NCO,NCO))
+      allocate(FTIA(NCO,Nvirt),GXCIA(NCO,Nvirt))
+      call ChangeBasisF(FX,FT,Gxc,C,FXAB,FXIJ,FTIA,GXCIA,M,Nvirt,NCO)
+      deallocate(FX,FT,Gxc)
+      allocate(Rvec(Ndim)); Rvec = 0.0D0
+
+      ! CALCULATE VECTOR R OF A * X = R
+      call RCalculate(FXAB,FXIJ,FTIA,GXCIA,X,Rvec,NCO,Nvirt,Ndim)
+ 
+      ! SOLVE EQUATION AX=R WITH PCG METHOD     
+      call PCG_solve(Rvec,K4cen,Tund,C,Ene,M,NCO,Nvirt,Ndim)
+      
+   end subroutine Zvector
+
+   subroutine UnDiffDens(X,T,NCO,Nvirt,M,Ndim)
+      implicit none
+
+      integer, intent(in) :: NCO, Nvirt, M, Ndim
+      real*8, intent(in) :: X(Ndim)
+      real*8, intent(out) :: T(M,M)
+
+      integer :: i, j, pos, NCOc
+      real*8 :: raiz2
+      real*8, dimension(:,:), allocatable :: XM, XMtrans, Ptrash
+
+!     NORMALIZAMOS A 1/2 PARA EVITAR PREFACTORES
+      allocate(XM(NCO,Nvirt),XMtrans(Nvirt,NCO))
+
+      raiz2 = 1.0D0 / dsqrt(2.0D0)
+      T = 0.0D0
+      NCOc = NCO + 1
+
+      do i=1,NCO
+      do j=1,Nvirt
+        pos = (i-1) * Nvirt + j
+        XM(i,j) = X(pos) * raiz2
+        XMtrans(j,i) = X(pos) * raiz2
+      enddo
+      enddo
+
+!     ARMAMOS LA MATRIZ DENSIDAD DIFERENCIA NO RELAJADA
+      allocate(Ptrash(NCO,NCO))
+      ! FORM BLOCK OCC-OCC
+      Ptrash = (-1.0D0) * matmul(XM,XMtrans)
+      do i=1,NCO
+      do j=i,NCO
+         T(NCOc-i,NCOc-j) = Ptrash(i,j)
+         T(NCOc-j,NCOc-i) = Ptrash(i,j)
+      enddo
+      enddo
+
+      ! FORM BLOCK VIR - VIR
+      deallocate(Ptrash); allocate(Ptrash(Nvirt,Nvirt))
+      Ptrash = matmul(XMtrans,XM)
+      do i=1,Nvirt
+      do j=i,Nvirt
+         T(NCO+i,NCO+j) = Ptrash(i,j)
+         T(NCO+j,NCO+i) = Ptrash(i,j)
+      enddo
+      enddo
+
+      deallocate(Ptrash,XM,XMtrans)
+   end subroutine UnDiffDens
+
+   subroutine MOtoAO(Coef,T,M)
+      implicit none
+
+      integer, intent(in) :: M
+      real*8, intent(in) :: Coef(M,M)
+      real*8, intent(inout) :: T(M,M)
+
+      integer :: i, j
+      real*8, dimension(:,:), allocatable :: SCR, CoefT
+
+      allocate(SCR(M,M),CoefT(M,M))
+
+      do i=1,M
+      do j=1,M
+         CoefT(i,j) = Coef(j,i)
+      enddo
+      enddo
+
+      ! CHANGE OF BASIS
+      SCR = matmul(Coef,T)
+      T = matmul(SCR,CoefT)
+
+      deallocate(SCR,CoefT)
+   end subroutine MOtoAO
+
+   subroutine XmatForm(Vec,Coef,Mat,Ndim,NCO,Nvirt,M)
+      implicit none
+
+      integer, intent(in) :: Ndim, NCO, Nvirt, M
+      real*8, intent(in) :: Vec(Ndim), Coef(M,M)
+      real*8, intent(out) :: Mat(M,M)
+
+      integer :: NCOc, row, col, pos
+      real*8 :: raiz2
+      real*8, dimension(:,:), allocatable :: Ctrans, SCR
+
+      NCOc = NCO + 1
+      raiz2 = 1.0D0 / dsqrt(2.0D0)
+
+      do row=1,NCO
+      do col=1,Nvirt
+        pos = (row-1) * Nvirt + col
+        Mat(NCOc-row,NCO+col) = Vec(pos) * raiz2
+      enddo
+      enddo
+
+      allocate(Ctrans(M,M))
+      do row=1,M
+      do col=1,M
+         Ctrans(col,row) = Coef(row,col)
+      enddo
+      enddo
+
+      allocate(SCR(M,M))
+      SCR = matmul(Coef,Mat)
+      Mat = matmul(SCR,Ctrans)
+
+      deallocate(Ctrans,SCR)
+   end subroutine XmatForm
+
+   subroutine ChangeBasisF(FX,FT,Gxc,C,FXAB,FXIJ,FTIA,GXCIA,M,Nvirt,NCO)
+      implicit none
+
+      integer, intent(in) :: M, Nvirt, NCO
+      real*8, intent(in) :: C(M,M)
+      real*8, intent(inout) :: FX(M,M), FT(M,M), Gxc(M,M)
+      real*8, intent(out) :: FXAB(Nvirt,Nvirt), FXIJ(NCO,NCO)
+      real*8, intent(out) :: FTIA(NCO,Nvirt), GXCIA(NCO,Nvirt)
+
+      integer :: i, j
+      real*8, dimension(:,:), allocatable :: Cv, CvT, Co, CoT
+      real*8, dimension(:,:), allocatable :: scratch
+
+      
+      ! OBTAIN C EN VIRT COMP
+      allocate(Cv(M,Nvirt),CvT(Nvirt,M))
+      do i=1,Nvirt
+      do j=1,M
+         Cv(j,i) = C(j,NCO+i)
+         CvT(i,j) = C(j,NCO+i)
+      enddo
+      enddo
+
+      ! OBTAIN C EN OCC COMP
+      allocate(Co(M,NCO),CoT(NCO,M))
+      do i=1,NCO
+      do j=1,M
+         Co(j,i) = C(j,i)
+         CoT(i,j) = C(j,i)
+      enddo
+      enddo
+   
+      ! COMPLETE LOWER TRIANGULO
+      do i=1,M
+      do j=i,M
+         FX(j,i) = FX(i,j)
+         FT(j,i) = FT(i,j)
+         Gxc(j,i) = Gxc(i,j)
+      enddo
+      enddo
+
+      ! FORM FX IN BASIS VIRT X VIRT
+      FXAB = 0.0D0
+      allocate(scratch(M,Nvirt))
+      scratch = matmul(FX,Cv)
+      FXAB = matmul(CvT,scratch)
+      deallocate(scratch)
+ 
+      ! FORM FX IN BASIS OCC X OCC
+      FXIJ = 0.0D0
+      allocate(scratch(M,NCO))
+      scratch = matmul(FX,Co)
+      FXIJ = matmul(CoT,scratch)
+      deallocate(scratch)
+
+      ! FORM FT IN BASIS OCC X VIR
+      FTIA = 0.0D0
+      allocate(scratch(M,Nvirt))
+      scratch = matmul(FT,Cv)
+      FTIA = matmul(CoT,scratch)
+      deallocate(scratch)
+
+      ! FORM GXC IN BASIS OCC X VIR
+      GXCIA = 0.0D0
+      allocate(scratch(M,Nvirt))
+      scratch = matmul(Gxc,Cv)
+      GXCIA = matmul(CoT,scratch)
+      deallocate(scratch)
+
+      deallocate(Co,CoT,Cv,CvT)
+   end subroutine ChangeBasisF
+
+   subroutine RCalculate(FXAB,FXIJ,FTIA,GXCIA,X,Rvec,NCO,Nvirt,Ndim)
+      implicit none
+     
+      integer, intent(in) :: NCO, Nvirt, Ndim
+      real*8, intent(in) :: FXAB(Nvirt,Nvirt), FXIJ(NCO,NCO)
+      real*8, intent(in) :: FTIA(NCO,Nvirt), GXCIA(NCO,Nvirt)
+      real*8, intent(in) :: X(Ndim)
+      real*8, intent(out) :: Rvec(Ndim)
+
+      integer :: i, a, b, j, posf, pos1, NCOc
+      real*8 :: temp1, temp2, raiz2
+ 
+      temp1 = 0.0D0; temp2 = 0.0D0
+      raiz2 = 1.0D0 / dsqrt(2.0D0)
+      NCOc = NCO + 1
+
+      do i=1,NCO
+      do a=1,Nvirt
+         posf = (i-1) * Nvirt + a 
+         ! VIRTUAL PART
+         do b=1,Nvirt
+            pos1 = (i-1) * Nvirt + b
+            temp1 = temp1 + X(pos1) * FXAB(a,b) * raiz2
+         enddo
+         ! OCC PART
+         do j=1,NCO
+            pos1 = (j-1) * Nvirt + a 
+            !temp2 = temp2 + X(pos1) * FXIJ(i,j) * raiz2
+            temp2 = temp2 + X(pos1) * FXIJ(NCOc-i,NCOc-j) * raiz2
+         enddo
+         ! OBRAIN RIA IN VECTOR FORM
+         !Rvec(posf) = temp2 - (temp1 + FTIA(i,a) + 2.0D0*GXCIA(i,a))
+         Rvec(posf) = temp2 - (temp1 + FTIA(NCOc-i,a) + 2.0D0*GXCIA(NCOc-i,a))
+         temp1 = 0.0D0; temp2 = 0.0D0
+      enddo
+      enddo
+
+   end subroutine RCalculate
+ 
+   subroutine PCG_solve(bvec,K4,Rho_urel,Coef,E,M,NCO,Nvirt,Ndim)
+      use lr_data, only: cbas
+      implicit none
+
+      integer, intent(in) :: NCO, Nvirt, Ndim, M
+      real*8, intent(in) :: bvec(Ndim), E(M), Coef(M,M), Rho_urel(M,M)
+      real*8, intent(in) :: K4(M,M,M,M)
+
+      integer :: i, j, iter, maxIter
+      real*8 :: beta, alpha
+      logical :: conv = .false.
+      real*8, dimension(:), allocatable :: R, Z, Pk, Mprec, ApIA
+      real*8, dimension(:), allocatable :: X
+      real*8, dimension(:,:), allocatable :: Pmat, F2e, Fxc
+      real*8, dimension(:,:), allocatable :: Ftot
+
+! START PRECONDITINED CONJUGATE GRADIENT
+      maxIter = 50
+
+! INITIAL GUESS: Xo = 0
+      allocate(R(Ndim))
+      R = bvec
+
+! CALCULATE PRECONDITIONED M^(-1)
+      allocate(Mprec(Ndim))
+      call Prec_calculate(E,Mprec,M,NCO,Ndim)
+
+      allocate(Pk(Ndim)); Pk = 0.0D0
+      call Pbeta_calc(R,Mprec,beta,Pk,Ndim)
+
+      allocate(Pmat(M,M),F2e(M,M),Fxc(M,M),Ftot(M,M))
+      allocate(ApIA(Ndim),X(Ndim)); X = 0.0D0; ApIA = 0.0D0
+      do iter=1,maxIter
+         print*, "PCG_ITER:",iter
+
+         ! CONVERT TRIAL VECTORS TO AO
+         call VecToMat(Pk,Pmat,Coef,Ndim,NCO,M)
+
+         ! CALCULATE TWO ELECTRON PART
+         F2e = 0.0D0
+         call g2g_calculate2e(Pmat,K4,cbas,1,F2e,1)
+         F2e = 2.0D0 * F2e
+
+         ! CALCULATE XC PART
+         Fxc = 0.0D0
+         call g2g_calculateg(Pmat,Fxc,2)
+
+         ! OBTAIN FOCK TOTAL AND ADD TERM (Ea-Ei)Pk AND
+         ! CHANGE BASIS AO -> MO
+         call total_fock(F2e,Fxc,Ftot,M)
+         call Ap_calculate(Ftot,Pk,Coef,E,ApIA,M,NCO,Nvirt,Ndim)
+         
+         ! CALCULATE ALPHA
+         call Alpha_calc(Pk,ApIA,alpha,Ndim)
+
+         ! NEW X VECTOR
+         X = X + alpha * Pk
+
+         ! NEW R VECTOR
+         R = R - alpha * APIA
+
+         ! CHECK CONVERGENCE
+         call error(R,conv,Ndim)
+         if (conv .eqv. .true.) exit
+ 
+         ! GET NEW BETA AND Pk
+         call Pbeta_calc(R,Mprec,beta,Pk,Ndim)
+
+      enddo ! ENDDO LOOP PCG
+
+      ! FORM RELAXED DENSITY OF EXCITED STATE
+      call RelaxedDensity(X,Rho_urel,Coef,M,NCO,Ndim)
+
+   end subroutine PCG_solve
+
+   subroutine RelaxedDensity(Z,Rho_urel,C,M,NCO,N)
+   use garcha_mod, only: RMM
+      implicit none
+
+      integer, intent(in) :: M, NCO, N
+      real*8, intent(in) :: Z(N), C(M,M), Rho_urel(M,M)
+
+      integer :: i, j, Nvirt, NCOc, pos, M2
+      real*8, dimension(:,:), allocatable :: Rho_fund, Rho_exc, Rel_diff
+      real*8, dimension(:,:), allocatable :: Zao, RhoRMM
+
+      ! EXTRACT RHO FUND FROM RMM
+      allocate(Rho_fund(M,M),RhoRMM(M,M))
+      call spunpack_rho('L',M,RMM,Rho_fund)
+
+      ! CONVERT Z IN AO BASIS     
+      allocate(Zao(M,M)); Zao = 0.0D0
+      Nvirt = M - NCO
+      NCOc = NCO + 1
+      do i=1,NCO
+      do j=1,Nvirt
+         pos = (i - 1) * Nvirt + j
+         Zao(NCOc-i,NCO+j) = Z(pos)
+      enddo
+      enddo
+   
+      call MOtoAO(C,Zao,M)
+
+      allocate(Rel_diff(M,M))
+      do i=1,M
+      do j=1,M
+         Rel_diff(i,j) = Rho_urel(i,j) + Zao(i,j)
+      enddo
+      enddo
+
+      allocate(Rho_exc(M,M))
+      do i=1,M
+      do j=1,M
+         Rho_exc(i,j) = Rho_fund(i,j) + Rel_diff(i,j) + Rel_diff(j,i)
+      enddo
+      enddo
+
+      print*, "Rho fundamental"
+      do i=1,M
+      do j=1,M
+         print*, i,j,Rho_fund(i,j)
+      enddo
+      enddo
+
+      print*, "relaxed density excited state"
+      do i=1,M
+      do j=1,M
+         print*, i,j,Rho_exc(i,j)
+      enddo
+      enddo
+
+      ! SAVE RHO EXCITED IN RMM
+      M2 = M * 2
+      do i=1,M  ! Stores matrix in RMM
+         RMM(i + (M2-i)*(i-1)/2) = Rho_exc(i,i)
+         do j = i+1, M
+            RMM(j + (M2-i)*(i-1)/2) = Rho_exc(i,j) * 2.0D0
+         enddo
+      enddo
+
+   end subroutine RelaxedDensity
+
+   subroutine error(V,convergence,N)
+      implicit none
+
+      integer, intent(in) :: N
+      real*8, intent(in) :: V(N)
+      logical, intent(inout) :: convergence
+ 
+      integer :: i
+      real*8 :: temp, tol
+  
+      tol = 1.0D-12
+      temp = 0.0D0
+      do i=1,N
+        temp = temp + V(i)*V(i)
+      enddo
+
+      if( temp < tol ) convergence = .true.
+ 
+   end subroutine error
+
+   subroutine Alpha_calc(P,A,alpha,N)
+      implicit none
+
+      integer, intent(in) :: N
+      real*8, intent(in) :: P(N), A(N)
+      real*8, intent(out) :: alpha
+
+      integer :: i
+      real*8 :: temp
+    
+      temp = 0.0D0
+      do i=1,N
+        temp = temp + P(i) * A(i)
+      enddo
+      alpha = 1.0D0 / temp
+   end subroutine Alpha_calc
+
+   subroutine Ap_calculate(Fp,P,C,E,Ap,M,NCO,Nvirt,Ndim)
+      implicit none
+
+      integer, intent(in) :: M, NCO, Nvirt, Ndim
+      real*8, intent(in) :: Fp(M,M), C(M,M), E(M), P(Ndim)
+      real*8, intent(out) :: Ap(Ndim)
+
+      integer :: i, j, NCOc, pos
+      real*8, dimension(:,:), allocatable :: CoT, Cv, scratch, Mat
+
+      allocate(CoT(NCO,M),Cv(M,Nvirt),Mat(NCO,Nvirt))
+ 
+      !FORM C OCC TRANSPUESTA
+      do i=1,NCO
+      do j=1,M
+         CoT(i,j) = C(j,i)
+      enddo
+      enddo
+
+      !FORM C VIR
+      do i=1,Nvirt
+      do j=1,M
+         Cv(j,i) = C(j,NCO+i)
+      enddo
+      enddo
+
+      allocate(scratch(M,Nvirt))
+      scratch = 0.0D0; Mat = 0.0D0
+      scratch = matmul(Fp,Cv)
+      Mat = matmul(CoT,scratch)
+      deallocate(scratch,CoT,Cv)
+
+      ! FORM IN MO BASIS A * p
+      NCOc = NCO + 1
+      do i=1,NCO
+      do j=1,Nvirt
+         pos = (i-1) * Nvirt + j
+         Ap(pos) = Mat(NCOc-i,j) + (E(NCO+j) - E(NCOc-i)) * P(pos)
+      enddo
+      enddo
+
+      deallocate(Mat)
+   end subroutine Ap_calculate
+
+   subroutine VecToMat(Vec,Mat,Coef,Ndim,NCO,M)
+      implicit none
+
+      integer, intent(in) :: Ndim, NCO, M
+      real*8, intent(in) :: Vec(Ndim), Coef(M,M)
+      real*8, intent(out) :: Mat(M,M)
+
+      integer :: row, col, NCOc, Nvirt, pos
+      real*8, dimension(:,:), allocatable :: CT, scratch
+     
+      Nvirt = M - NCO
+      NCOc = NCO + 1
+
+      Mat = 0.0D0
+      do row=1,NCO
+      do col=1,Nvirt
+         pos = (row-1) * Nvirt + col
+         Mat(NCOc-row,NCO+col) = Vec(pos)
+      enddo
+      enddo
+  
+      allocate(CT(M,M),scratch(M,M))
+      do row=1,M
+      do col=1,M
+         CT(col,row) = Coef(row,col)
+      enddo
+      enddo
+ 
+      scratch = 0.0D0
+      scratch = matmul(Coef,Mat)
+      Mat = matmul(scratch,CT)
+
+      deallocate(CT,scratch)
+   end subroutine VecToMat
+
+   subroutine Pbeta_calc(R,M,beta,P,N)
+      implicit none
+
+      integer, intent(in) :: N
+      real*8, intent(in) :: R(N), M(N)
+      real*8, intent(inout) :: P(N)
+      real*8, intent(out) :: beta
+
+      integer :: i
+      real*8 :: temp
+
+      temp = 0.0D0
+      do i=1,N
+         temp = temp + R(i) * R(i) * M(i)
+      enddo
+      beta = 1.0D0 / temp
+
+      do i=1,N
+        P(i) = P(i) + beta * M(i) * R(i)
+      enddo
+   end subroutine Pbeta_calc
+
+   subroutine Prec_calculate(Ener,Mprec,M,NCO,Ndim)
+      implicit none
+ 
+      integer, intent(in) :: M, NCO, Ndim
+      real*8, intent(in) :: Ener(M)
+      real*8, intent(out) :: Mprec(Ndim)
+
+      integer :: i, j, Nvirt, NCOc, pos
+      real*8 :: temp
+
+      Nvirt = M - NCO
+      NCOc = NCO + 1
+      temp = 0.0D0
+      Mprec = 0.0D0
+
+      do i=1,NCO
+      do j=1,Nvirt
+         pos = (i-1) * Nvirt + j
+         temp = Ener(j+NCO) - Ener(NCOc-i)
+         temp = 1.0D0 / temp
+         Mprec(pos) = temp
+      enddo
+      enddo
+   end subroutine Prec_calculate
+
+   subroutine total_fock(F1,F2,FT,M)
+      implicit none
+
+      integer, intent(in) :: M
+      real*8, intent(in) :: F1(M,M)
+      real*8, intent(inout) :: F2(M,M)
+      real*8, intent(out) :: FT(M,M)
+
+      integer :: i, j
+      do i=1,M
+      do j=i,M
+         F2(j,i) = F2(i,j)
+      enddo
+      enddo
+  
+      FT = F1 + 2.0D0 * F2
+   end subroutine total_fock
+
 end module lrtddft

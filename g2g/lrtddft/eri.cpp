@@ -34,10 +34,9 @@ void eri(double*Kc_int,int M,uint natoms,uint*ncont,
 
 // Check basis normalization with libint
 //TODO: ver como hacer para que libint no normalize
-/*  cout << "BASIS SET LIBINT" << endl; // print SET BASIS
+  cout << "BASIS SET LIBINT" << endl; // print SET BASIS
   std::copy(begin(obs), end(obs),
          std::ostream_iterator<Shell>(std::cout, "\n"));
-*/
 
   Engine eri_engine(Operator::coulomb, max_nprim(obs), max_l(obs), 0);
   const auto& buf = eri_engine.results();
