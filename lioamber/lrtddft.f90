@@ -161,7 +161,7 @@ contains
 !    CHANGE BASIS MO -> AO FOR EACH VECTOR
      if(allocated(tmatAO)) deallocate(tmatAO)
         allocate(tmatAO(M,M,vec_dim))
-     call matMOtomatAO(tmatMO,tmatAO,Coef_LR,M,vec_dim)
+     call matMOtomatAO(tmatMO,tmatAO,Coef_LR,M,vec_dim,.true.)
 
 !    CALCULATE 2E INTEGRALS
      allocate(FM2(M,M,vec_dim)); FM2 = 0.0D0
@@ -273,12 +273,13 @@ contains
       enddo
    end subroutine vecMOtomatMO
 
-   subroutine matMOtomatAO(MatMO,MatAO,C,M,numvec)
+   subroutine matMOtomatAO(MatMO,MatAO,C,M,numvec,transp)
    use lr_data, only: Coef_trans
 
       implicit none
 
       integer, intent(in) :: M, numvec
+      logical, intent(in) :: transp
       real*8, intent(in) :: MatMO(M,M,numvec)
       real*8, intent(in) :: C(M,M)
       real*8, intent(out) :: MatAO(M,M,numvec)
@@ -294,14 +295,16 @@ contains
       enddo
 
 ! PASAMOS MatAO A LA TRANSPUESTA PARA LUEGO USARLA EN C
-      do i=1,numvec
-        scratch = MatAO(:,:,i)
-        do j=1,M
-        do k=1,M
-           MatAO(k,j,i) = scratch(j,k)
+      if ( transp ) then
+        do i=1,numvec
+          scratch = MatAO(:,:,i)
+          do j=1,M
+          do k=1,M
+            MatAO(k,j,i) = scratch(j,k)
+          enddo
+          enddo
         enddo
-        enddo
-      enddo
+      endif
 
       deallocate(scratch)
    end subroutine matMOtomatAO
@@ -638,7 +641,7 @@ contains
       ! FORM TRANSITION DENSITY IN MO BASIS
       call vecMOtomatMO(X,TdensMO,M,NCO,Nvirt,Nstat,Nstat,0,Ndim)
       ! CHANGE THE MO TO AO BASIS
-      call matMOtomatAO(TdensMO,TdensAO,Coef,M,Nstat)
+      call matMOtomatAO(TdensMO,TdensAO,Coef,M,Nstat,.true.)
       deallocate(TdensMO)
       ! CALCULATE TRANSITION DIPOLE
       call TransDipole(TdensAO,Tdip,M,Nstat)
@@ -712,7 +715,7 @@ contains
       real*8, intent(in) :: X(Ndim), K4cen(M,M,M,M)
 
       integer :: i , j, Nvirt
-      real*8, dimension(:,:), allocatable :: Tund, Xmat, Gxc
+      real*8, dimension(:,:), allocatable :: TundAO, Xmat, Gxc, TundMO
       real*8, dimension(:,:), allocatable :: FX, FT
       real*8, dimension(:,:,:), allocatable :: F2e, PA
       real*8, dimension(:,:), allocatable :: FXAB, FXIJ, FTIA, GXCIA
@@ -721,11 +724,13 @@ contains
       Nvirt = M - NCO
 
       ! FORM UNRELAXED DIFFERENCE DENSITY MATRIX
-      allocate(Tund(M,M))
-      call UnDiffDens(X,Tund,NCO,Nvirt,M,Ndim)
+      allocate(TundMO(M,M))
+      call UnDiffDens(X,TundMO,NCO,Nvirt,M,Ndim)
 
       ! CHANGE BASIS T OM -> AO
-      call MOtoAO(C,Tund,M)
+      allocate(TundAO(M,M))
+      call matMOtomatAO(TundMO,TundAO,C,M,1,.false.)
+      deallocate(TundMO)
 
       ! FORM TRANSITION DENSITY MATRIX
       allocate(Xmat(M,M)); Xmat = 0.0D0
@@ -739,13 +744,13 @@ contains
       allocate(FX(M,M)); FX = 0.0D0
       call g2g_calculateg(Xmat,FX,2) 
       allocate(FT(M,M)); FT = 0.0D0
-      call g2g_calculateg(Tund,FT,2) 
+      call g2g_calculateg(TundAO,FT,2) 
 
       ! CALCULATE TWO ELECTRON FOCK
       ! 1 = tiene la parte 2e de Xmat
       ! 2 = tiene la parte 2e de Tund
       allocate(PA(M,M,2),F2e(M,M,2)); F2e = 0.0D0
-      PA(:,:,1) = Xmat; PA(:,:,2) = Tund
+      PA(:,:,1) = Xmat; PA(:,:,2) = TundAO
       call g2g_calculate2e(PA,K4cen,cbas,2,F2e,1)
       F2e = 2.0D0 * F2e
 ! ================================================
@@ -772,7 +777,7 @@ contains
       call RCalculate(FXAB,FXIJ,FTIA,GXCIA,X,Rvec,NCO,Nvirt,Ndim)
  
       ! SOLVE EQUATION AX=R WITH PCG METHOD     
-      call PCG_solve(Rvec,K4cen,Tund,C,Ene,M,NCO,Nvirt,Ndim)
+      call PCG_solve(Rvec,K4cen,TundAO,C,Ene,M,NCO,Nvirt,Ndim)
       
    end subroutine Zvector
 
@@ -825,27 +830,6 @@ contains
 
       deallocate(Ptrash,XM,XMtrans)
    end subroutine UnDiffDens
-
-   subroutine MOtoAO(Coef,T,M)
-   use lr_data, only: Coef_trans
-
-      implicit none
-
-      integer, intent(in) :: M
-      real*8, intent(in) :: Coef(M,M)
-      real*8, intent(inout) :: T(M,M)
-
-      integer :: i, j
-      real*8, dimension(:,:), allocatable :: SCR
-
-      allocate(SCR(M,M))
-
-      ! CHANGE OF BASIS
-      SCR = matmul(Coef,T)
-      T = matmul(SCR,Coef_trans)
-
-      deallocate(SCR)
-   end subroutine MOtoAO
 
    subroutine XmatForm(Vec,Coef,Mat,Ndim,NCO,Nvirt,M)
    use lr_data, only: Coef_trans
@@ -1051,24 +1035,26 @@ contains
 
       integer :: i, j, Nvirt, NCOc, pos, M2
       real*8, dimension(:,:), allocatable :: Rho_fund, Rho_exc, Rel_diff
-      real*8, dimension(:,:), allocatable :: Zao, RhoRMM
+      real*8, dimension(:,:), allocatable :: Zmo, Zao, RhoRMM
 
       ! EXTRACT RHO FUND FROM RMM
       allocate(Rho_fund(M,M),RhoRMM(M,M))
       call spunpack_rho('L',M,RMM,Rho_fund)
 
       ! CONVERT Z IN AO BASIS     
-      allocate(Zao(M,M)); Zao = 0.0D0
+      allocate(Zmo(M,M)); Zmo = 0.0D0
       Nvirt = M - NCO
       NCOc = NCO + 1
       do i=1,NCO
       do j=1,Nvirt
          pos = (i - 1) * Nvirt + j
-         Zao(NCOc-i,NCO+j) = Z(pos)
+         Zmo(NCOc-i,NCO+j) = Z(pos)
       enddo
       enddo
    
-      call MOtoAO(C,Zao,M)
+      allocate(Zao(M,M))
+      call matMOtomatAO(Zmo,Zao,C,M,1,.false.)
+      deallocate(Zmo)
 
       allocate(Rel_diff(M,M))
       Rel_diff = Rho_urel + Zao
