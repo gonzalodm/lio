@@ -21,7 +21,9 @@ module lr_data
    logical :: FCA = .false.
    integer :: nfo = 3
    integer :: nfv = 3
-   
+! Matrices needed for change basis
+   real*8, dimension(:,:), allocatable :: Coef_trans, Cocc, Cocc_trans, &
+                                          Cvir, Cvir_trans
 end module lr_data
 
 module lrtddft
@@ -86,6 +88,8 @@ contains
       Coef_LR = MatCoef
       Ene_LR = VecEne
    endif
+
+   call basis_init(Coef_LR,M,NCO,Nvirt)
 
    print*, ""
    print*,"======================================="
@@ -270,6 +274,8 @@ contains
    end subroutine vecMOtomatMO
 
    subroutine matMOtomatAO(MatMO,MatAO,C,M,numvec)
+   use lr_data, only: Coef_trans
+
       implicit none
 
       integer, intent(in) :: M, numvec
@@ -278,21 +284,12 @@ contains
       real*8, intent(out) :: MatAO(M,M,numvec)
 
       integer :: i, j, k
-      real*8, dimension(:,:), allocatable :: CT, scratch
-
-      allocate(CT(M,M))
-      do i=1,M
-      do j=1,M
-         CT(j,i) = C(i,j)
-      enddo
-      enddo
-   
-      MatAO = 0.0D0
+      real*8, dimension(:,:), allocatable :: scratch
 
 ! PASAMOS LA MATRIZ EN OM DE LOS VECTORES A MATRIZ EN AO
       allocate(scratch(M,M))
       do i=1,numvec
-         scratch = matmul(MatMO(:,:,i),CT)
+         scratch = matmul(MatMO(:,:,i),Coef_trans)
          MatAO(:,:,i) = matmul(C,scratch)
       enddo
 
@@ -305,10 +302,13 @@ contains
         enddo
         enddo
       enddo
-      deallocate(scratch,CT)
+
+      deallocate(scratch)
    end subroutine matMOtomatAO
 
    subroutine formred(TmatMO,C,VecMOAO,M,dim,numvec,iv)
+   use lr_data, only: Coef_trans
+
      implicit none
 
      integer, intent(in) :: M, dim, iv, numvec
@@ -316,18 +316,11 @@ contains
      real*8, intent(in) :: C(M,M)
      real*8, intent(out) :: VecMOAO(M,M)
 
-     real*8, dimension(:,:), allocatable :: CT, scratch
+     real*8, dimension(:,:), allocatable ::scratch
      integer :: i, j
 
-     allocate(CT(M,M),scratch(M,M))
-     ! TRANSPOSE OF COEF MATRIX
-     do i=1,M
-     do j=1,M
-       CT(i,j) = C(j,i)
-     enddo
-     enddo
- 
-     scratch = matmul(TmatMO(:,:,iv),CT(:,:))
+     allocate(scratch(M,M))
+     scratch = matmul(TmatMO(:,:,iv),Coef_trans(:,:))
 
      ! FORM TRANSPOSE FOR USE IT IN C
      do i=1,M
@@ -336,7 +329,7 @@ contains
      enddo
      enddo
 
-     deallocate(CT,scratch)
+     deallocate(scratch)
    end subroutine formred
 
    subroutine formbig(Fv,FXC,M,numvec,iv)
@@ -358,6 +351,8 @@ contains
    end subroutine formbig
   
    subroutine MtoIANV(F,C,A,M,NCO,Ndim,Sdim,Nvec,V1)
+   use lr_data, only: Cocc_trans
+
       implicit none
 
       integer, intent(in) :: M, Ndim, Nvec, NCO, V1, Sdim
@@ -365,23 +360,17 @@ contains
       real*8, intent(inout) :: A(Ndim,Sdim)
 
       integer :: i, j, k, iv, row, Nvirt, NCOc
-      real*8, dimension(:,:), allocatable :: CTocc
       real*8, dimension(:,:), allocatable :: B
  
       real*8 :: temp
 
       Nvirt = M - NCO
       NCOc = NCO + 1
-      allocate(CTocc(NCO,M),B(NCO,M))
-      do i=1,NCO
-      do j=1,M
-         CTocc(i,j) = C(j,i)
-      enddo
-      enddo
+      allocate(B(NCO,M))
 
       temp = 0.0D0
       do iv=1,Nvec
-        B = matmul(CTocc(:,:),F(:,:,iv))
+        B = matmul(Cocc_trans,F(:,:,iv))
         do i=1,NCO
         do j=NCOc,M
           do k=1,M
@@ -393,7 +382,8 @@ contains
         enddo
         enddo
       enddo
-      deallocate(CTocc,B)
+
+      deallocate(B)
    end subroutine MtoIANV
 
    subroutine addInt(A,Ene,Vec,Ndim,M,Sdim,NCO,Nvec,V1)
@@ -837,6 +827,8 @@ contains
    end subroutine UnDiffDens
 
    subroutine MOtoAO(Coef,T,M)
+   use lr_data, only: Coef_trans
+
       implicit none
 
       integer, intent(in) :: M
@@ -844,24 +836,19 @@ contains
       real*8, intent(inout) :: T(M,M)
 
       integer :: i, j
-      real*8, dimension(:,:), allocatable :: SCR, CoefT
+      real*8, dimension(:,:), allocatable :: SCR
 
-      allocate(SCR(M,M),CoefT(M,M))
-
-      do i=1,M
-      do j=1,M
-         CoefT(i,j) = Coef(j,i)
-      enddo
-      enddo
+      allocate(SCR(M,M))
 
       ! CHANGE OF BASIS
       SCR = matmul(Coef,T)
-      T = matmul(SCR,CoefT)
+      T = matmul(SCR,Coef_trans)
 
-      deallocate(SCR,CoefT)
+      deallocate(SCR)
    end subroutine MOtoAO
 
    subroutine XmatForm(Vec,Coef,Mat,Ndim,NCO,Nvirt,M)
+   use lr_data, only: Coef_trans
       implicit none
 
       integer, intent(in) :: Ndim, NCO, Nvirt, M
@@ -870,7 +857,7 @@ contains
 
       integer :: NCOc, row, col, pos
       real*8 :: raiz2
-      real*8, dimension(:,:), allocatable :: Ctrans, SCR
+      real*8, dimension(:,:), allocatable ::SCR
 
       NCOc = NCO + 1
       raiz2 = 1.0D0 / dsqrt(2.0D0)
@@ -882,21 +869,16 @@ contains
       enddo
       enddo
 
-      allocate(Ctrans(M,M))
-      do row=1,M
-      do col=1,M
-         Ctrans(col,row) = Coef(row,col)
-      enddo
-      enddo
-
       allocate(SCR(M,M))
       SCR = matmul(Coef,Mat)
-      Mat = matmul(SCR,Ctrans)
+      Mat = matmul(SCR,Coef_trans)
 
-      deallocate(Ctrans,SCR)
+      deallocate(SCR)
    end subroutine XmatForm
 
    subroutine ChangeBasisF(FX,FT,Gxc,C,FXAB,FXIJ,FTIA,GXCIA,M,Nvirt,NCO)
+   use lr_data, only: Cocc, Cocc_trans, Cvir, Cvir_trans
+
       implicit none
 
       integer, intent(in) :: M, Nvirt, NCO
@@ -906,28 +888,8 @@ contains
       real*8, intent(out) :: FTIA(NCO,Nvirt), GXCIA(NCO,Nvirt)
 
       integer :: i, j
-      real*8, dimension(:,:), allocatable :: Cv, CvT, Co, CoT
       real*8, dimension(:,:), allocatable :: scratch
 
-      
-      ! OBTAIN C EN VIRT COMP
-      allocate(Cv(M,Nvirt),CvT(Nvirt,M))
-      do i=1,Nvirt
-      do j=1,M
-         Cv(j,i) = C(j,NCO+i)
-         CvT(i,j) = C(j,NCO+i)
-      enddo
-      enddo
-
-      ! OBTAIN C EN OCC COMP
-      allocate(Co(M,NCO),CoT(NCO,M))
-      do i=1,NCO
-      do j=1,M
-         Co(j,i) = C(j,i)
-         CoT(i,j) = C(j,i)
-      enddo
-      enddo
-   
       ! COMPLETE LOWER TRIANGULO
       do i=1,M
       do j=i,M
@@ -940,32 +902,31 @@ contains
       ! FORM FX IN BASIS VIRT X VIRT
       FXAB = 0.0D0
       allocate(scratch(M,Nvirt))
-      scratch = matmul(FX,Cv)
-      FXAB = matmul(CvT,scratch)
+      scratch = matmul(FX,Cvir)
+      FXAB = matmul(Cvir_trans,scratch)
       deallocate(scratch)
  
       ! FORM FX IN BASIS OCC X OCC
       FXIJ = 0.0D0
       allocate(scratch(M,NCO))
-      scratch = matmul(FX,Co)
-      FXIJ = matmul(CoT,scratch)
+      scratch = matmul(FX,Cocc)
+      FXIJ = matmul(Cocc_trans,scratch)
       deallocate(scratch)
 
       ! FORM FT IN BASIS OCC X VIR
       FTIA = 0.0D0
       allocate(scratch(M,Nvirt))
-      scratch = matmul(FT,Cv)
-      FTIA = matmul(CoT,scratch)
+      scratch = matmul(FT,Cvir)
+      FTIA = matmul(Cocc_trans,scratch)
       deallocate(scratch)
 
       ! FORM GXC IN BASIS OCC X VIR
       GXCIA = 0.0D0
       allocate(scratch(M,Nvirt))
-      scratch = matmul(Gxc,Cv)
-      GXCIA = matmul(CoT,scratch)
+      scratch = matmul(Gxc,Cvir)
+      GXCIA = matmul(Cocc_trans,scratch)
       deallocate(scratch)
 
-      deallocate(Co,CoT,Cv,CvT)
    end subroutine ChangeBasisF
 
    subroutine RCalculate(FXAB,FXIJ,FTIA,GXCIA,X,Rvec,NCO,Nvirt,Ndim)
@@ -1079,7 +1040,6 @@ contains
 
       ! FORM RELAXED DENSITY OF EXCITED STATE
       call RelaxedDensity(X,Rho_urel,Coef,M,NCO,Ndim)
-
    end subroutine PCG_solve
 
    subroutine RelaxedDensity(Z,Rho_urel,C,M,NCO,N)
@@ -1111,11 +1071,7 @@ contains
       call MOtoAO(C,Zao,M)
 
       allocate(Rel_diff(M,M))
-      do i=1,M
-      do j=1,M
-         Rel_diff(i,j) = Rho_urel(i,j) + Zao(i,j)
-      enddo
-      enddo
+      Rel_diff = Rho_urel + Zao
 
       allocate(Rho_exc(M,M))
       do i=1,M
@@ -1187,6 +1143,8 @@ contains
    end subroutine Alpha_calc
 
    subroutine Ap_calculate(Fp,P,C,E,Ap,M,NCO,Nvirt,Ndim)
+   use lr_data, only: Cocc_trans, Cvir
+
       implicit none
 
       integer, intent(in) :: M, NCO, Nvirt, Ndim
@@ -1194,29 +1152,13 @@ contains
       real*8, intent(out) :: Ap(Ndim)
 
       integer :: i, j, NCOc, pos
-      real*8, dimension(:,:), allocatable :: CoT, Cv, scratch, Mat
+      real*8, dimension(:,:), allocatable :: scratch, Mat
 
-      allocate(CoT(NCO,M),Cv(M,Nvirt),Mat(NCO,Nvirt))
- 
-      !FORM C OCC TRANSPUESTA
-      do i=1,NCO
-      do j=1,M
-         CoT(i,j) = C(j,i)
-      enddo
-      enddo
-
-      !FORM C VIR
-      do i=1,Nvirt
-      do j=1,M
-         Cv(j,i) = C(j,NCO+i)
-      enddo
-      enddo
-
-      allocate(scratch(M,Nvirt))
+      allocate(Mat(NCO,Nvirt),scratch(M,Nvirt))
       scratch = 0.0D0; Mat = 0.0D0
-      scratch = matmul(Fp,Cv)
-      Mat = matmul(CoT,scratch)
-      deallocate(scratch,CoT,Cv)
+      scratch = matmul(Fp,Cvir)
+      Mat = matmul(Cocc_trans,scratch)
+      deallocate(scratch)
 
       ! FORM IN MO BASIS A * p
       NCOc = NCO + 1
@@ -1231,6 +1173,8 @@ contains
    end subroutine Ap_calculate
 
    subroutine VecToMat(Vec,Mat,Coef,Ndim,NCO,M)
+   use lr_data, only: Coef_trans
+
       implicit none
 
       integer, intent(in) :: Ndim, NCO, M
@@ -1238,7 +1182,7 @@ contains
       real*8, intent(out) :: Mat(M,M)
 
       integer :: row, col, NCOc, Nvirt, pos
-      real*8, dimension(:,:), allocatable :: CT, scratch
+      real*8, dimension(:,:), allocatable :: scratch
      
       Nvirt = M - NCO
       NCOc = NCO + 1
@@ -1251,18 +1195,13 @@ contains
       enddo
       enddo
   
-      allocate(CT(M,M),scratch(M,M))
-      do row=1,M
-      do col=1,M
-         CT(col,row) = Coef(row,col)
-      enddo
-      enddo
+      allocate(scratch(M,M))
  
       scratch = 0.0D0
       scratch = matmul(Coef,Mat)
-      Mat = matmul(scratch,CT)
+      Mat = matmul(scratch,Coef_trans)
 
-      deallocate(CT,scratch)
+      deallocate(scratch)
    end subroutine VecToMat
 
    subroutine Pbeta_calc(R,M,beta,P,N)
@@ -1330,4 +1269,34 @@ contains
       FT = F1 + 2.0D0 * F2
    end subroutine total_fock
 
+   subroutine basis_init(Coef,M,NCO,Nvirt)
+   ! This subroutine initializes the matrix needed for 
+   ! the change of basis in linear response and CPKS calculations 
+      use lr_data, only: Coef_trans, Cocc, &
+                        Cocc_trans, Cvir, Cvir_trans
+      implicit none
+      integer, intent(in) :: M, NCO, Nvirt
+      real*8, intent(in) :: Coef(M,M)
+
+      integer :: i, j
+
+      allocate(Coef_trans(M,M),Cocc(M,NCO),Cocc_trans(NCO,M), &
+               Cvir(M,Nvirt),Cvir_trans(Nvirt,M))
+
+      do j=1,NCO
+         Cocc(:,j) = Coef(:,j)
+         Cocc_trans(j,:) = Coef(:,j)
+      enddo
+ 
+      do j=1,Nvirt
+         Cvir(:,j) = Coef(:,NCO+j)
+         Cvir_trans(j,:) = Coef(:,NCO+j)
+      enddo
+
+      do i=1,M
+      do j=1,M
+         Coef_trans(j,i) = Coef(i,j)
+      enddo
+      enddo
+   end subroutine basis_init
 end module lrtddft
