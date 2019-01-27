@@ -89,6 +89,7 @@ contains
       Ene_LR = VecEne
    endif
 
+!  INITIALIZATION OF MATRIX NEEDED FOR CHANGE BASIS
    call basis_init(Coef_LR,M,NCO,Nvirt)
 
    print*, ""
@@ -130,7 +131,7 @@ contains
 !  INITIAL GUESS
    call vec_init(tvecMO,dim,vec_dim)
 
-! SAVE INTEGRALS COULOMP TYPE
+!  SAVE INTEGRALS COULOMP TYPE
    allocate(K2eAO(M,M,M,M),vmatAO(M,M),Fv(M,M))
    allocate(RitzVec(dim,nstates),ResMat(dim,nstates))
    K2eAO = 0.0D0; vmatAO = 0.0D0; Fv = 0.0D0; RitzVec = 0.0D0
@@ -171,7 +172,7 @@ contains
      do iv=1,vec_dim ! LOOPS VECTORS INSIDE OF CYCLE
         call formred(tmatMO,Coef_LR,vmatAO,M,dim,vec_dim,iv) ! FORM T * C**T
         call g2g_calculatedft(vmatAO,Coef_LR,Fv,NCO)
-        call formbig(Fv,FXC,M,vec_dim,iv)
+        FXC(:,:,iv) = Fv
         Fv = 0.0D0
      enddo ! END LOOPS VECTORS
 
@@ -339,23 +340,6 @@ contains
      deallocate(scratch)
    end subroutine formred
 
-   subroutine formbig(Fv,FXC,M,numvec,iv)
-      implicit none
-
-      integer, intent(in) :: M, numvec, iv
-      real*8, intent(in) :: Fv(M,M)
-      real*8, intent(inout) :: FXC(M,M,numvec)
-      
-      integer :: i, j
-
-      do i=1,M
-      do j=i,M
-         FXC(i,j,iv) = Fv(i,j)
-         FXC(j,i,iv) = Fv(i,j)
-      enddo
-      enddo
-   end subroutine formbig
-  
    subroutine MtoIANV(F,C,A,M,NCO,Ndim,Sdim,Nvec,V1)
    use lr_data, only: Cocc_trans
 

@@ -199,7 +199,6 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
          redy += D0 * gyi + DY * Fi;
          redz += D0 * gzi + DZ * Fi;
       }
-
       double sigma = tdx * tdx + tdy * tdy + tdz * tdz;
       double cruz = redx * tdx + redy * tdy + redz * tdz;
       cruz *= 0.50f;tdx *= 0.5f;tdy *= 0.5f;tdz *= 0.5f;
@@ -231,6 +230,7 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
      for(int j=0; j<=i; j++) {
        col = numeros[j];
        F[row*M+col] += smallFock[i*group_m+j];
+       F[col*M+row] = F[row*M+col];
      }
    }
 
