@@ -296,8 +296,8 @@ contains
 !     CHANGE BASIS MO -> AO
       allocate(scratch(M,M))
       do i=1,numvec
-         scratch = matmul(MatMO(:,:,i),Coef_trans)
-         MatAO(:,:,i) = matmul(C,scratch)
+         call multlr(MatMO(:,:,i),Coef_trans,scratch,M,M,M,1.0D0,0.0D0)
+         call multlr(C,scratch,MatAO(:,:,i),M,M,M,1.0D0,0.0D0)
       enddo
 
 !     WE TRANSPOSE MATRIX FOR USE IT IN C
@@ -327,7 +327,7 @@ contains
 
      integer :: i, j
 
-     vecMOAO = matmul(TmatMO(:,:,iv),Coef_trans(:,:))
+     call multlr(TmatMO(:,:,iv),Coef_trans,vecMOAO,M,M,M,1.0D0,0.0D0)
    end subroutine formred
 
    subroutine MtoIANV(F,C,A,M,NCO,Ndim,Sdim,Nvec,V1)
@@ -350,7 +350,7 @@ contains
 
       temp = 0.0D0
       do iv=1,Nvec
-        B = matmul(Cocc_trans,F(:,:,iv))
+        call multlr(Cocc_trans,F(:,:,iv),B,NCO,M,M,1.0D0,0.0D0)
         do i=1,NCO
         do j=NCOc,M
           do k=1,M
@@ -404,7 +404,7 @@ contains
       enddo
       enddo
 
-      H = matmul(VT,A)
+      call multlr(VT,A,H,Sdim,Ndim,Sdim,1.0D0,0.0D0)
       deallocate(VT)
    end subroutine subspaceMat
 
@@ -475,7 +475,7 @@ contains
       real*8, intent(in) :: V(Ndim,Sdim), Vsmall(Sdim,Nstat)
       real*8, intent(out) :: R(Ndim,Nstat)
    
-      R = matmul(V,Vsmall)
+      call multlr(V,Vsmall,R,Ndim,Sdim,Nstat,1.0D0,0.0D0)
    end subroutine RitzObtain
 
    subroutine residual(Val,Vec,R,A,W,Ndim,Sdim,Nstat)
@@ -491,8 +491,8 @@ contains
 
       allocate(temp(Ndim))
       do i=1,Nstat
-        temp = matmul(A(1:Ndim,1:Sdim),Vec(1:Sdim,i)) - Val(i) * R(1:Ndim,i)
-        W(1:Ndim,i) = temp
+        call multlr(A,Vec(:,i),temp,Ndim,Sdim,1,1.0D0,0.0D0)
+        W(1:Ndim,i) = temp - Val(i) * R(1:Ndim,i)
       enddo
       deallocate(temp)
    end subroutine residual
@@ -782,7 +782,7 @@ contains
 !     FORM UNRELAXED DIFFERENCE DENSITY MATRIX
       allocate(Ptrash(NCO,NCO))
       ! FORM BLOCK OCC-OCC
-      Ptrash = (-1.0D0) * matmul(XM,XMtrans)
+      call multlr(XM,XMtrans,Ptrash,NCO,Nvirt,NCO,-1.0D0,0.0D0)
       do i=1,NCO
       do j=i,NCO
          T(NCOc-i,NCOc-j) = Ptrash(i,j)
@@ -792,7 +792,7 @@ contains
 
       ! FORM BLOCK VIR - VIR
       deallocate(Ptrash); allocate(Ptrash(Nvirt,Nvirt))
-      Ptrash = matmul(XMtrans,XM)
+      call multlr(XMtrans,XM,Ptrash,Nvirt,NCO,Nvirt,1.0D0,0.0D0)
       do i=1,Nvirt
       do j=i,Nvirt
          T(NCO+i,NCO+j) = Ptrash(i,j)
@@ -826,9 +826,8 @@ contains
       enddo
 
       allocate(SCR(M,M))
-      SCR = matmul(Coef,Mat)
-      Mat = matmul(SCR,Coef_trans)
-
+      call multlr(Coef,Mat,SCR,M,M,M,1.0D0,0.0D0)
+      call multlr(SCR,Coef_trans,Mat,M,M,M,1.0D0,0.0D0)
       deallocate(SCR)
    end subroutine XmatForm
 
@@ -848,26 +847,26 @@ contains
 
 !     FORM FX IN BASIS VIRT X VIRT
       allocate(scratch(M,Nvirt))
-      scratch = matmul(FX,Cvir)
-      FXAB = matmul(Cvir_trans,scratch)
+      call multlr(FX,Cvir,scratch,M,M,Nvirt,1.0D0,0.0D0)
+      call multlr(Cvir_trans,scratch,FXAB,Nvirt,M,Nvirt,1.0D0,0.0D0)
       deallocate(scratch)
  
 !     FORM FX IN BASIS OCC X OCC
       allocate(scratch(M,NCO))
-      scratch = matmul(FX,Cocc)
-      FXIJ = matmul(Cocc_trans,scratch)
+      call multlr(FX,Cocc,scratch,M,M,NCO,1.0D0,0.0D0)
+      call multlr(Cocc_trans,scratch,FXIJ,NCO,M,NCO,1.0D0,0.0D0)
       deallocate(scratch)
 
 !     FORM FT IN BASIS OCC X VIR
       allocate(scratch(M,Nvirt))
-      scratch = matmul(FT,Cvir)
-      FTIA = matmul(Cocc_trans,scratch)
+      call multlr(FT,Cvir,scratch,M,M,Nvirt,1.0D0,0.0D0)
+      call multlr(Cocc_trans,scratch,FTIA,NCO,M,Nvirt,1.0D0,0.0D0)
       deallocate(scratch)
 
 !     FORM GXC IN BASIS OCC X VIR
       allocate(scratch(M,Nvirt))
-      scratch = matmul(Gxc,Cvir)
-      GXCIA = matmul(Cocc_trans,scratch)
+      call multlr(Gxc,Cvir,scratch,M,M,Nvirt,1.0D0,0.0D0)
+      call multlr(Cocc_trans,scratch,GXCIA,NCO,M,Nvirt,1.0D0,0.0D0)
       deallocate(scratch)
    end subroutine ChangeBasisF
 
@@ -1091,22 +1090,22 @@ contains
       real*8, intent(out) :: Ap(Ndim)
 
       integer :: i, j, NCOc, pos
-      real*8, dimension(:,:), allocatable :: scratch
+      real*8, dimension(:,:), allocatable :: scrA, scrB
 
-      allocate(scratch(M,Nvirt))
-      scratch = matmul(Fp,Cvir)
-      scratch = matmul(Cocc_trans,scratch)
-
+      allocate(scrA(M,Nvirt),scrB(NCO,Nvirt))
+      call multlr(Fp,Cvir,scrA,M,M,Nvirt,1.0D0,0.0D0)
+      call multlr(Cocc_trans,scrA,scrB,NCO,M,Nvirt,1.0D0,0.0D0)
+      
 !     FORM A*p IN MO BASIS
       NCOc = NCO + 1
       do i=1,NCO
       do j=1,Nvirt
          pos = (i-1) * Nvirt + j
-         Ap(pos) = scratch(NCOc-i,j) + (E(NCO+j) - E(NCOc-i)) * P(pos)
+         Ap(pos) = scrB(NCOc-i,j) + ( E(NCO+j) - E(NCOc-i) )*P(pos)
       enddo
       enddo
 
-      deallocate(scratch)
+      deallocate(scrA,scrB)
    end subroutine Ap_calculate
 
    subroutine VecToMat(Vec,Mat,Coef,Ndim,NCO,M)
@@ -1119,6 +1118,7 @@ contains
       real*8, intent(out) :: Mat(M,M)
 
       integer :: row, col, NCOc, Nvirt, pos
+      real*8, dimension(:,:), allocatable :: scr
      
       Nvirt = M - NCO
       NCOc = NCO + 1
@@ -1131,8 +1131,10 @@ contains
       enddo
       enddo
   
-      Mat = matmul(Coef,Mat)
-      Mat = matmul(Mat,Coef_trans)
+      allocate(scr(M,M))
+      call multlr(Coef,Mat,scr,M,M,M,1.0D0,0.0D0)
+      call multlr(scr,Coef_trans,Mat,M,M,M,1.0D0,0.0D0)
+      deallocate(scr)
    end subroutine VecToMat
 
    subroutine Pbeta_calc(R,M,beta,P,N)
@@ -1235,4 +1237,16 @@ contains
       implicit none
       deallocate(Coef_trans, Cocc, Cocc_trans, Cvir, Cvir_trans)
    end subroutine basis_deinit
+
+   subroutine multlr(A,B,C,M,K,N,alpha,beta)
+      implicit none
+
+      integer, intent(in) :: M, K, N
+      real*8, intent(in) :: A(M,K), B(K,N)
+      real*8, intent(in) :: alpha, beta
+      real*8, intent(inout) :: C(M,N)
+
+      call dgemm('N','N',M,N,K,alpha,A,M,B,K,beta,C,M)
+
+   end subroutine multlr
 end module lrtddft
