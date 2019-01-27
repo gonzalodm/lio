@@ -166,6 +166,7 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
      for(int j=0;j<=i;j++) {
        col = numeros[j];
        F[row*M+col] += smallFock[i*group_m+j];
+       F[col*M+row] = F[row*M+col];
      }
    }
 

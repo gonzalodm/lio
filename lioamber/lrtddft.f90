@@ -176,7 +176,8 @@ contains
         Fv = 0.0D0
      enddo ! END LOOPS VECTORS
 
-     FM2 = FM2 + FXC ! ADD INTEGRALS 
+!    NOW FM2 CONTAIN THE 2e- AND DFT PARTS
+     FM2 = FM2 + FXC 
      deallocate(FXC)
 
 !    WE OBTAIN AX (NDIM x NVEC)
@@ -739,11 +740,6 @@ contains
       deallocate(Xmat)
       call g2g_calculate2e(PA,K4cen,cbas,2,F2e,1)
       F2e = 2.0D0 * F2e
-! ================================================
-! !!!  SOLO EL TRIANGULO SUPERIOR ESTA BINE       |
-!      LA PARTE DE 2e esta completa pero la de    |
-!      DFT solo se llena el triangulo superior    |
-! ================================================
 
       ! FT + F2eT
       FT = F2e(:,:,2) + 2.0D0 * FT
@@ -860,15 +856,6 @@ contains
 
       integer :: i, j
       real*8, dimension(:,:), allocatable :: scratch
-
-!     COMPLETE LOWER TRIANGULO
-      do i=1,M
-      do j=i,M
-         FX(j,i) = FX(i,j)
-         FT(j,i) = FT(i,j)
-         Gxc(j,i) = Gxc(i,j)
-      enddo
-      enddo
 
 !     FORM FX IN BASIS VIRT X VIRT
       allocate(scratch(M,Nvirt))
