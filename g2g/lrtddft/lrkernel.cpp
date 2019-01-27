@@ -132,7 +132,7 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
    for(int i=0; i<NCO; i++) {
      for(int j=0; j<group_m; j++) {
        int jj = numeros[j];
-       tred(i,j) = T[i*M+jj]; // con esto utilizo el triangulo inferior de tred
+       tred(i,j) = T[jj*M+i];
        Cred(i,j) = C[i*M+jj];
      }
    } 

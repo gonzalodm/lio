@@ -325,20 +325,9 @@ contains
      real*8, intent(in) :: C(M,M)
      real*8, intent(out) :: VecMOAO(M,M)
 
-     real*8, dimension(:,:), allocatable ::scratch
      integer :: i, j
 
-     allocate(scratch(M,M))
-     scratch = matmul(TmatMO(:,:,iv),Coef_trans(:,:))
-
-!    FORM TRANSPOSE FOR USE IT IN C
-     do i=1,M
-     do j=1,M
-        VecMOAO(i,j) = scratch(j,i)
-     enddo
-     enddo
-
-     deallocate(scratch)
+     vecMOAO = matmul(TmatMO(:,:,iv),Coef_trans(:,:))
    end subroutine formred
 
    subroutine MtoIANV(F,C,A,M,NCO,Ndim,Sdim,Nvec,V1)
