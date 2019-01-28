@@ -48,6 +48,7 @@ void Partition::solve_Gxc(double* Tmat,double* F,int& DER)
          }
       }
    }
+
    timeF = omp_get_wtime();
    //printf("SOLVE_CLOSED_LR SUBROUTINE %f\n",timeF-timeI);
    fflush(stdout);

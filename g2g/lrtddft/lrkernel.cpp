@@ -45,24 +45,7 @@ extern "C" void g2g_calculate2e_(double* Tmat,double* K2eAO,double* Cbas,
      //printf("ERI SUBROUTINE %f\n",timeF-timeI);
    }
 
-   double valor, Dens;
-   valor = 0.0f;
-   for(int ivec=0; ivec<numvec; ivec++) {
-     for(int u=0; u<M; u++) {
-       for(int v=0; v<=u; v++) {
-         for(int k=0; k<M; k++) {
-           for(int l=0;l<k; l++) {
-              Dens = (Tmat[ivec*M2+k*M+l] + Tmat[ivec*M2+l*M+k])*2.0f; // Tmat es una matriz NO SIMETRICA
-              valor += Dens * K2eAO[u*M3+v*M2+k*M+l];
-           }
-           valor += Tmat[ivec*M2+k*M+k]*2.0f*K2eAO[u*M3+v*M2+k*M+k];
-         }
-         F[ivec*M2+u*M+v] = valor;
-         F[ivec*M2+v*M+u] = valor;
-         valor = 0.0f;
-       }
-     }
-   }
+   ObtainFock_A(Tmat,K2eAO,F,numvec,M);
 
    fflush(stdout); // NOT BUFFERED
 }
@@ -95,6 +78,7 @@ void Partition::solve_lr(double* T,double* C,double* F,int& NCO)
          }
       }
    }
+
    timeF = omp_get_wtime();
    //printf("SOLVE_CLOSED_LR SUBROUTINE %f\n",timeF-timeI);
    fflush(stdout);
