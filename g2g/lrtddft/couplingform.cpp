@@ -9,6 +9,7 @@ using namespace std;
 
 void ObtainFock_A(double* T, double* K, double* Fock, int vec, int M)
 {
+// In general, T is not a symmetry matrix
    int M2 = M * M;
    int M3 = M2 * M;
    double valor, Dens;
@@ -20,7 +21,7 @@ void ObtainFock_A(double* T, double* K, double* Fock, int vec, int M)
        for(int v=0; v<=u; v++) {
          for(int k=0; k<M; k++) {
            for(int l=0;l<k; l++) {
-              Dens = ( T[ivec*M2+k*M+l] + T[ivec*M2+l*M+k] )*2.0f; // Tmat es una matriz NO SIMETRICA
+              Dens = ( T[ivec*M2+k*M+l] + T[ivec*M2+l*M+k] )*2.0f;
               valor += Dens * K[u*M3+v*M2+k*M+l];
            }
            valor += T[ivec*M2+k*M+k] * 2.0f * K[u*M3+v*M2+k*M+k];

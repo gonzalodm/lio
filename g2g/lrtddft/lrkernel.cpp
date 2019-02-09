@@ -41,11 +41,15 @@ extern "C" void g2g_calculate2e_(double* Tmat,double* K2eAO,double* Cbas,
      eri(K2eAO,M,fortran_vars.atoms,ncont,Cbas,aContr,pos,nuc,
          s_func,p_func,d_func);
      timeF = omp_get_wtime();
-     printf("POR PASAS UNA VEZ\n");
-     //printf("ERI SUBROUTINE %f\n",timeF-timeI);
+     printf(" ERI SUBROUTINE %f\n",timeF-timeI);
    }
 
+   timeI = omp_get_wtime();
+
    ObtainFock_A(Tmat,K2eAO,F,numvec,M);
+
+   timeF = omp_get_wtime();
+   printf(" OBTAINFOCK %f\n",timeF-timeI);
 
    fflush(stdout); // NOT BUFFERED
 }
@@ -66,7 +70,6 @@ void Partition::solve_lr(double* T,double* C,double* F,int& NCO)
 {
 
    double timeI, timeF;
-   timeI = omp_get_wtime();
 #pragma omp parallel for schedule(static)
    for(uint i=0;i<work.size();i++) {
       for(uint j=0;j<work[i].size();j++) {
@@ -78,9 +81,6 @@ void Partition::solve_lr(double* T,double* C,double* F,int& NCO)
          }
       }
    }
-
-   timeF = omp_get_wtime();
-   //printf("SOLVE_CLOSED_LR SUBROUTINE %f\n",timeF-timeI);
    fflush(stdout);
 }
 //######################################################################

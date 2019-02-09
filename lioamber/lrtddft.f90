@@ -149,7 +149,6 @@ contains
       write(*,"(1X,A,6X,I2)") "ITERATION:",iter
       write(*,"(1X,A,7X,I4)") "SUBSPACE:",Subdim
       write(*,"(1X,A,1X,I4)") "VECTORS INSIDE:",vec_dim
-      write(*,"(1X,A,4X,I2)") "LAST VECTOR:",first_vec
 
 !    CHANGE VECTORS TO MATRIX IN OM
      if(allocated(tmatMO)) deallocate(tmatMO)
@@ -169,12 +168,14 @@ contains
 
 !    CALCULATE DFT INTEGRALS
      allocate(FXC(M,M,vec_dim))
+     call g2g_timer_start('Dft integrals of vectors')
      do iv=1,vec_dim ! LOOPS VECTORS INSIDE OF CYCLE
         call formred(tmatMO,Coef_LR,vmatAO,M,dim,vec_dim,iv) ! FORM T * C**T
         call g2g_calculatedft(vmatAO,Coef_LR,Fv,NCO)
         FXC(:,:,iv) = Fv
         Fv = 0.0D0
      enddo ! END LOOPS VECTORS
+     call g2g_timer_stop('Dft integrals of vectors')
 
 !    NOW FM2 CONTAIN THE 2e- AND DFT PARTS
      FM2 = FM2 + FXC 
@@ -219,6 +220,7 @@ contains
                       dim,Subdim,nstates,M,NCO,newvec,conv)
 
      if(conv .eqv. .true.) then
+       write(*,*) ""
        write(*,"(1X,A,I2,1X,A)") "CONVERGED IN:",iter,"ITERATIONS"
        call OscStr(RitzVec,eigval,Coef_LR,Osc,M,NCO,Nvirt,dim,nstates)
        call PrintResults(RitzVec,eigval,Osc,dim,nstates)
@@ -234,8 +236,9 @@ contains
    deallocate(vmatAO,Fv,ResMat,val_old,Osc,eigval, &
               eigvec,AX,tvecMO,tmatAO)
 
+   call g2g_timer_stop('LINEAR RESPONSE')
+
    if (root > 0 ) then
-     write(*,"(1X,A,I2)") "FORM RELAXED DENSITY FOR EXICTED STATE:",root
      call Zvector(Coef_LR,Ene_LR,RitzVec(:,root),K2eAO,NCO,M,dim)
    endif
    
@@ -539,12 +542,10 @@ contains
        do iv=1,Nstat
          diffE = abs(Eold(iv) - Esub(iv))
          if(diffE > MAX_ENE) MAX_ENE = diffE
-         write(*,"(1X,A,I2,1X,A,F14.7)") "Vector:",iv,"Change in energy:",diffE
 
          call norma(R(:,iv),Ndim,ERROR)
          if(ERROR > MAX_ERROR) MAX_ERROR = ERROR
 
-         print*, ERROR
          if(ERROR > tolv .or. diffE > tole) then
             New = New + 1
             valid_id(New) = iv
@@ -566,7 +567,7 @@ contains
           return
        endif
 
-       print*,"VEC,ENE",MAX_ERROR,MAX_ENE
+       write(*,8070) MAX_ERROR, tolv, MAX_ENE, tole
        if(MAX_ERROR < tolv .and. MAX_ENE < tole) then
          conv = .true.
        else
@@ -579,6 +580,12 @@ contains
 
        Eold = Esub
        deallocate(Qvec,valid_id)
+
+8070   FORMAT(1X,"VectorsError (crit) = ", F15.7," (",ES9.2,")" &
+              " - EnergyError (crit) = ", F15.7," (",ES9.2,")" )
+
+
+
    end subroutine new_vectors
 
    subroutine QRfactorization(A,N,M)
@@ -682,7 +689,7 @@ contains
    end subroutine ObtainOsc
 
    subroutine Zvector(C,Ene,X,K4cen,NCO,M,Ndim)
-   use lr_data, only: cbas
+   use lr_data, only: cbas, root
       implicit none
 
       integer, intent(in) :: NCO, M, Ndim
@@ -697,6 +704,15 @@ contains
       real*8, dimension(:), allocatable :: Rvec
 
       Nvirt = M - NCO
+
+      print*, ""
+      print*,"======================================="
+      print*,"            Z-VECTOR METHOD"
+      print*,"======================================="
+      print*, ""
+
+      write(*,"(1X,A,1X,I2)") "FORM RELAXED DENSITY MATRIX FOR EXCITED STATE:", root
+      write(*,*) ""
 
 !     FORM UNRELAXED DIFFERENCE DENSITY MATRIX
       allocate(TundMO(M,M))
@@ -936,8 +952,11 @@ contains
 
       allocate(Pmat(M,M),F2e(M,M),Fxc(M,M),Ftot(M,M))
       allocate(ApIA(Ndim),X(Ndim)); X = 0.0D0
+
+      write(*,*) ""
+      write(*,"(1X,A)") "Start PCG loop"
+      write(*,*) ""
       do iter=1,maxIter
-         print*, "PCG_ITER:",iter
 
          ! CONVERT TRIAL VECTORS TO AO BASIS
          call VecToMat(Pk,Pmat,Coef,Ndim,NCO,M)
@@ -966,8 +985,11 @@ contains
          R = R - alpha * APIA
 
          ! CHECK CONVERGENCE
-         call error(R,conv,Ndim)
-         if (conv .eqv. .true.) exit
+         call error(R,conv,Ndim,iter)
+         if (conv .eqv. .true.) then
+            write(*,"(1X,A,1X,I2,1X,A)") "Convergence achieved in",iter,"itertaions"
+            exit
+         endif
  
          ! GET NEW BETA AND Pk
          call Pbeta_calc(R,Mprec,beta,Pk,Ndim)
@@ -1044,10 +1066,10 @@ contains
       enddo
    end subroutine RelaxedDensity
 
-   subroutine error(V,convergence,N)
+   subroutine error(V,convergence,N,iter)
       implicit none
 
-      integer, intent(in) :: N
+      integer, intent(in) :: N, iter
       real*8, intent(in) :: V(N)
       logical, intent(inout) :: convergence
  
@@ -1060,7 +1082,11 @@ contains
         temp = temp + V(i)*V(i)
       enddo
 
+      write(*,8070) iter, temp, tol
+      print*, ""
       if( temp < tol ) convergence = .true.
+
+8070  FORMAT(1X,"Iteration = ", I2,1X,"Error (crit) =",ES9.2," (",ES9.2,")")
    end subroutine error
 
    subroutine Alpha_calc(P,A,alpha,N)
