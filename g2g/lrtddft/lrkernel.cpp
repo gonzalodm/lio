@@ -9,9 +9,10 @@
 #include "../init.h"
 #include "../partition.h"
 
+#include "obtain.h"
 #include "eri.h"
-#include "couplingform.h"
 #include "../libxc/libxcproxy.h"
+
 
 #define DENSMIN 1e-5
 
@@ -34,8 +35,9 @@ extern "C" void g2g_calculate2e_(double* Tmat,double* K2eAO,double* Cbas,
    double timeI, timeF;
    uint* ncont = &fortran_vars.contractions(0);
    uint* nuc = &fortran_vars.nucleii(0);
+   Obtain fock(numvec,M);
 
-   timeI = timeF = 0.0;
+   timeI = timeF = 0.0f;
    if (int2elec == 0 ) {
      timeI = omp_get_wtime();
      eri(K2eAO,M,fortran_vars.atoms,ncont,Cbas,aContr,pos,nuc,
@@ -44,12 +46,7 @@ extern "C" void g2g_calculate2e_(double* Tmat,double* K2eAO,double* Cbas,
      printf(" ERI SUBROUTINE %f\n",timeF-timeI);
    }
 
-   timeI = omp_get_wtime();
-
-   ObtainFock_A(Tmat,K2eAO,F,numvec,M);
-
-   timeF = omp_get_wtime();
-   printf(" OBTAINFOCK %f\n",timeF-timeI);
+   fock.calculate(Tmat,K2eAO,F);
 
    fflush(stdout); // NOT BUFFERED
 }

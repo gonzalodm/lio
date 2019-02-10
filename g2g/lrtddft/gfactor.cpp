@@ -11,7 +11,6 @@
 #include "../libxc/libxcproxy.h"
 
 #include "eri.h"
-#include "couplingform.h"
 #include "calc_coef.h"
 
 #define DENSMIN 1e-5
