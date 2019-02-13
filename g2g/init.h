@@ -2,6 +2,7 @@
 #define __INIT_H__
 
 #include "matrix.h"
+#include "lrtddft/centros.h"
 
 namespace G2G {
 
@@ -42,7 +43,6 @@ struct FortranVars {
   FortranMatrix<double> rmm_input_ndens1, rmm_output;
   FortranMatrix<double> rmm_dens_a, rmm_dens_b, rmm_output_a, rmm_output_b;
   FortranMatrix<double> e, e1, e2, e3, wang, wang1, wang2, wang3;
-  uint dim;
   uint nvirt;
   uint ncolr;
 
@@ -52,6 +52,11 @@ struct FortranVars {
   uint ex_functional_id; // Identificador del funcional de intercambio (exchange)
   uint ec_functional_id; // Identificador del funcional de correlacion (correlation)
   /////////////////////////////////////
+
+
+  // Agregado pa linear Response //
+  FourCenter* Kmat = NULL;
+  int dim;
 
 };
 

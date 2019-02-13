@@ -3,10 +3,13 @@
 #include <stdio.h>
 
 #include "obtain.h"
+#include "centros.h"
 
-Obtain::Obtain(int vec, int size)
+
+Obtain::Obtain(int vec, int size, int dimension)
 {
    total_vec = vec;
+   int_total = dimension;
    M  = size;
    M2 = size * size;
    M3 = size * size * size;
@@ -18,35 +21,37 @@ Obtain::~Obtain()
    printf(" TIME FOCK CALCULATION %f\n",timerF-timerI);
 }
 
-void Obtain::calculate(double* Tmat, double* Kmat, double* Fmat)
+void Obtain::calculate(double* Tmat, FourCenter* Kmat, double* Fmat)
 {
    method_A(Tmat,Kmat,Fmat);
 }
 
-void Obtain::method_A(double* T, double* K, double* F)
+void Obtain::method_A(double* T, FourCenter* K, double* F)
 {
 // T is not a symmetric matrix
 
-   double valor, Dens;
-   valor = Dens = 0.0f;
-   
+   double Dens = 0.0f;
+   int p1, p2, p3, p4;
+
    timerI = omp_get_wtime();
-#pragma omp parallel for private(Dens,valor)
+#pragma omp parallel for private(p1,p2,p3,p4,Dens)
    for(int ivec=0; ivec<total_vec; ivec++) {
-     for(int u=0; u<M; u++) {
-       for(int v=0; v<=u; v++) {
-         for(int k=0; k<M; k++) {
-           for(int l=0;l<k; l++) {
-              Dens = ( T[ivec*M2+k*M+l] + T[ivec*M2+l*M+k] )*2.0f;
-              valor += Dens * K[u*M3+v*M2+k*M+l];
-           }
-           valor += T[ivec*M2+k*M+k] * 2.0f * K[u*M3+v*M2+k*M+k];
-         }
-         F[ivec*M2+u*M+v] = valor;
-         F[ivec*M2+v*M+u] = valor;
-         valor = 0.0f;
-       }
+
+      for(int i=0; i<int_total; i++) {
+        p1 = ivec*M2+K[i].k*M+K[i].l;
+        p2 = ivec*M2+K[i].l*M+K[i].k;
+        p3 = ivec*M2+K[i].u*M+K[i].v;
+        p4 = ivec*M2+K[i].v*M+K[i].u;
+
+        Dens = ( T[p1] + T[p2] ) * 2.0f;
+        F[p3] += K[i].result * Dens;
+        F[p4] += K[i].result * Dens;
+
+        Dens = ( T[p3] + T[p4] ) * 2.0f;
+        F[p1] += K[i].result * Dens;
+        F[p2] += K[i].result * Dens;
      }
+
    }
    timerF = omp_get_wtime();
 }

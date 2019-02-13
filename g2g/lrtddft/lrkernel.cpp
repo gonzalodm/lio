@@ -11,8 +11,8 @@
 
 #include "obtain.h"
 #include "eri.h"
+#include "centros.h"
 #include "../libxc/libxcproxy.h"
-
 
 #define DENSMIN 1e-5
 
@@ -21,9 +21,10 @@ extern Partition partition;
 
 //######################################################################
 //######################################################################
-extern "C" void g2g_calculate2e_(double* Tmat,double* K2eAO,double* Cbas,
+extern "C" void g2g_calculate2e_(double* Tmat,double* Cbas,
                                  int& numvec,double* F,int& int2elec)
 {
+// TODO: LA PARALELIZACION CON OMP ANDA PARA EL ORTO!!!!!!!
    int M = fortran_vars.m;
    int M2 = M*M;
    int M3 = M2*M;
@@ -35,18 +36,17 @@ extern "C" void g2g_calculate2e_(double* Tmat,double* K2eAO,double* Cbas,
    double timeI, timeF;
    uint* ncont = &fortran_vars.contractions(0);
    uint* nuc = &fortran_vars.nucleii(0);
-   Obtain fock(numvec,M);
 
    timeI = timeF = 0.0f;
    if (int2elec == 0 ) {
      timeI = omp_get_wtime();
-     eri(K2eAO,M,fortran_vars.atoms,ncont,Cbas,aContr,pos,nuc,
+     eri(M,fortran_vars.atoms,ncont,Cbas,aContr,pos,nuc,
          s_func,p_func,d_func);
      timeF = omp_get_wtime();
      printf(" ERI SUBROUTINE %f\n",timeF-timeI);
    }
-
-   fock.calculate(Tmat,K2eAO,F);
+   Obtain fock(numvec,M,fortran_vars.dim);
+   fock.calculate(Tmat,fortran_vars.Kmat,F);
 
    fflush(stdout); // NOT BUFFERED
 }
@@ -66,13 +66,13 @@ namespace G2G {
 void Partition::solve_lr(double* T,double* C,double* F,int& NCO)
 {
 
-   double timeI, timeF;
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for num_threads(cpu_threads + gpu_threads) schedule( \
+    static)
    for(uint i=0;i<work.size();i++) {
       for(uint j=0;j<work[i].size();j++) {
          int ind = work[i][j];
          if(ind >= cubes.size()) {
-           spheres[ind-cubes.size()]->solve_closed_lr(T,C,F,NCO);
+           spheres[ind - cubes.size()]->solve_closed_lr(T,C,F,NCO);
          } else {
            cubes[ind]->solve_closed_lr(T,C,F,NCO);
          }

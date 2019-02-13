@@ -1,6 +1,8 @@
 #include <iostream>
 #include <omp.h>
 #include <libint2.hpp>
+#include "../init.h"
+#include "centros.h"
 
 using libint2::Atom;
 using libint2::BasisSet;
@@ -8,6 +10,7 @@ using libint2::Shell;
 using libint2::Engine;
 using libint2::Operator;
 using namespace std;
+using namespace G2G;
 
 typedef unsigned int uint;
 
@@ -21,7 +24,7 @@ int max_l(const std::vector<libint2::Shell>&);
 
 std::vector<int> map_shell(const std::vector<libint2::Shell>&);
 
-void eri(double*Kc_int,int M,uint natoms,uint*ncont,
+void eri(int M,uint natoms,uint*ncont,
          double*cbas,double*a,double*r,uint*nuc,
          int sfunc,int pfunc, int dfunc)
 {
@@ -44,6 +47,12 @@ void eri(double*Kc_int,int M,uint natoms,uint*ncont,
   const auto& buf = eri_engine.results();
   std::vector<int> shell2bf = map_shell(obs);
 
+  // Temporal arrays
+  int ind_tot = 0;
+  std::vector<unsigned int> indu, indv, indk, indl;
+  std::vector<double> intvalue4;
+
+  // We use FULL SYMMETRY
   for(int s1=0; s1<obs.size(); ++s1) {
     int bf1_first = shell2bf[s1]; // first basis function in this shell
     int n1 = obs[s1].size();   // number of basis function in this shell
@@ -52,13 +61,20 @@ void eri(double*Kc_int,int M,uint natoms,uint*ncont,
       int bf2_first = shell2bf[s2];
       int n2 = obs[s2].size();
 
-      for(int s3=0; s3<obs.size(); ++s3) {
+      for(int s3=0; s3<=s1; ++s3) {
         int bf3_first = shell2bf[s3];
         int n3 = obs[s3].size();
 
-        for(int s4=0; s4<=s3; ++s4) {
+        int s4_lim = (s1 == s3) ? s2 : s3;
+        for(int s4=0; s4<=s4_lim; ++s4) {
           int bf4_first = shell2bf[s4];
           int n4 = obs[s4].size();
+
+          // degeneration factor
+          double s12_deg = (s1 == s2) ? 2.0f : 1.0f;
+          double s34_deg = (s3 == s4) ? 2.0f : 1.0f;
+          double s12_34_deg = (s1 == s3) ? ( (s2 == s4) ? 2.0f : 1.0f ) : 1.0f;
+          double s1234_deg = s12_deg * s34_deg * s12_34_deg;
 
           eri_engine.compute(obs[s1], obs[s2], obs[s3], obs[s4]);
           const auto* buf_1234 = buf[0];
@@ -73,10 +89,14 @@ void eri(double*Kc_int,int M,uint natoms,uint*ncont,
                   const int bf4 = f4 + bf4_first;
                   double value = buf_1234[f1234];
                   
-                  Kc_int[bf1*M3+bf2*M2+bf3*M+bf4]=value;
-                  Kc_int[bf2*M3+bf1*M2+bf3*M+bf4]=value;
-                  Kc_int[bf1*M3+bf2*M2+bf4*M+bf3]=value;
-                  Kc_int[bf2*M3+bf1*M2+bf4*M+bf3]=value;
+                  ind_tot += 1;
+                  value = value / s1234_deg;
+                  intvalue4.push_back(value);
+                  indu.push_back(bf1);
+                  indv.push_back(bf2);
+                  indk.push_back(bf3);
+                  indl.push_back(bf4);
+
                 }
               }
             }
@@ -86,7 +106,32 @@ void eri(double*Kc_int,int M,uint natoms,uint*ncont,
       }
     }
   }
+
   libint2::finalize();
+  // Allocate memory
+  fortran_vars.dim = ind_tot;
+  fortran_vars.Kmat = NULL;
+  fortran_vars.Kmat = (FourCenter*) malloc(ind_tot*sizeof(FourCenter));
+  if ( fortran_vars.Kmat == NULL ) {
+     printf("Can't allocate memory of Kmat in eri\n");
+     exit(-1);
+  }
+  
+  for(int i=0; i<ind_tot; i++) {
+      fortran_vars.Kmat[i].u = indu[i];
+      fortran_vars.Kmat[i].v = indv[i];
+      fortran_vars.Kmat[i].k = indk[i];
+      fortran_vars.Kmat[i].l = indl[i];
+      fortran_vars.Kmat[i].result = intvalue4[i];
+  }
+
+  // Free Memory
+  std::vector<double>().swap(intvalue4);
+  std::vector<unsigned int>().swap(indu);
+  std::vector<unsigned int>().swap(indv);
+  std::vector<unsigned int>().swap(indk);
+  std::vector<unsigned int>().swap(indl);
+
 }
 
 std::vector<Atom> libint_geom(double* r,int natoms)

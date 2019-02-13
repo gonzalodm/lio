@@ -88,6 +88,11 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
        tred(i,j) = Tmat[row*M+col] + Tmat[col*M+row];
      }
    }
+// INITIALIZATION LIBXC
+   const int nspin = XC_POLARIZED;
+   const int functionalExchange = fortran_vars.ex_functional_id; //101;
+   const int functionalCorrelation = fortran_vars.ec_functional_id; // 130;
+   LibxcProxy<scalar_type,3> libxcProxy(functionalExchange, functionalCorrelation, nspin);
 
    for(int point=0;point<npoints;point++) {
       scalar_type pd, pdx, pdy, pdz; pd = pdx = pdy = pdz = 0.0f;
@@ -130,12 +135,7 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
       pdx *= 0.5f; pdy *= 0.5f; pdz *= 0.5f;
 
       if (DER == 2 ) {
-          // INIT LIBXC
           double cruz = (redx * pdx + redy * pdy + redz * pdz);
-          const int nspin = XC_POLARIZED;
-          const int functionalExchange = fortran_vars.ex_functional_id; //101;
-          const int functionalCorrelation = fortran_vars.ec_functional_id; // 130;
-          LibxcProxy<scalar_type,3> libxcProxy(functionalExchange, functionalCorrelation, nspin);
           // RUN LIBXC
           libxcProxy.coefLR(&pd,&sigma,red,cruz,zcoef);
       } else {

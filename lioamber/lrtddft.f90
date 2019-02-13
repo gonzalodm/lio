@@ -47,7 +47,6 @@ contains
 !  IF FCA IS USED
    real*8, dimension(:), allocatable :: Ene_LR
    real*8, dimension(:,:), allocatable :: Coef_LR
-   real*8, dimension(:,:,:,:), allocatable :: K2eAO
 !  DAVIDSON OPTIONS
    integer :: maxIter, iter ! ITERATION
    integer :: vec_dim, iv, first_vec, newvec ! VECTOR INDEXES
@@ -132,9 +131,9 @@ contains
    call vec_init(tvecMO,dim,vec_dim)
 
 !  SAVE INTEGRALS COULOMP TYPE
-   allocate(K2eAO(M,M,M,M),vmatAO(M,M),Fv(M,M))
+   allocate(vmatAO(M,M),Fv(M,M))
    allocate(RitzVec(dim,nstates),ResMat(dim,nstates))
-   K2eAO = 0.0D0; vmatAO = 0.0D0; Fv = 0.0D0; RitzVec = 0.0D0
+   vmatAO = 0.0D0; Fv = 0.0D0; RitzVec = 0.0D0
 
 !  PRINT INFORMATION
    write(*,"(1X,A,22X,I2,2X,I2,2X,I2)") "NCO, NVIRT, M",NCO,Nvirt,M
@@ -163,7 +162,7 @@ contains
 
 !    CALCULATE 2E INTEGRALS
      allocate(FM2(M,M,vec_dim)); FM2 = 0.0D0
-     call g2g_calculate2e(tmatAO,K2eAO,cbas,vec_dim,FM2,calc_2elec)
+     call g2g_calculate2e(tmatAO,cbas,vec_dim,FM2,calc_2elec)
      calc_2elec = 1 ! TURN OFF CALCULATE INTEGRALS
 
 !    CALCULATE DFT INTEGRALS
@@ -239,10 +238,10 @@ contains
    call g2g_timer_stop('LINEAR RESPONSE')
 
    if (root > 0 ) then
-     call Zvector(Coef_LR,Ene_LR,RitzVec(:,root),K2eAO,NCO,M,dim)
+     call Zvector(Coef_LR,Ene_LR,RitzVec(:,root),NCO,M,dim)
    endif
    
-   deallocate(K2eAO,RitzVec,Coef_LR,Ene_LR)
+   deallocate(RitzVec,Coef_LR,Ene_LR)
    call basis_deinit()
 
    end subroutine linear_response
@@ -688,13 +687,13 @@ contains
       enddo
    end subroutine ObtainOsc
 
-   subroutine Zvector(C,Ene,X,K4cen,NCO,M,Ndim)
+   subroutine Zvector(C,Ene,X,NCO,M,Ndim)
    use lr_data, only: cbas, root
       implicit none
 
       integer, intent(in) :: NCO, M, Ndim
       real*8, intent(in) :: C(M,M), Ene(M)
-      real*8, intent(in) :: X(Ndim), K4cen(M,M,M,M)
+      real*8, intent(in) :: X(Ndim)
 
       integer :: i , j, Nvirt
       real*8, dimension(:,:), allocatable :: TundAO, Xmat, Gxc, TundMO
@@ -743,7 +742,7 @@ contains
       allocate(PA(M,M,2),F2e(M,M,2)); F2e = 0.0D0
       PA(:,:,1) = Xmat; PA(:,:,2) = TundAO
       deallocate(Xmat)
-      call g2g_calculate2e(PA,K4cen,cbas,2,F2e,1)
+      call g2g_calculate2e(PA,cbas,2,F2e,1)
       F2e = 2.0D0 * F2e
 
       ! FT + F2eT
@@ -764,7 +763,7 @@ contains
       call RCalculate(FXAB,FXIJ,FTIA,GXCIA,X,Rvec,NCO,Nvirt,Ndim)
  
 !     SOLVE EQUATION AX=R WITH PCG METHOD     
-      call PCG_solve(Rvec,K4cen,TundAO,C,Ene,M,NCO,Nvirt,Ndim)
+      call PCG_solve(Rvec,TundAO,C,Ene,M,NCO,Nvirt,Ndim)
       
       deallocate(TundAO,FXAB,FXIJ,FTIA,GXCIA,Rvec)
    end subroutine Zvector
@@ -922,13 +921,12 @@ contains
       enddo
    end subroutine RCalculate
  
-   subroutine PCG_solve(bvec,K4,Rho_urel,Coef,E,M,NCO,Nvirt,Ndim)
+   subroutine PCG_solve(bvec,Rho_urel,Coef,E,M,NCO,Nvirt,Ndim)
       use lr_data, only: cbas
       implicit none
 
       integer, intent(in) :: NCO, Nvirt, Ndim, M
       real*8, intent(in) :: bvec(Ndim), E(M), Coef(M,M), Rho_urel(M,M)
-      real*8, intent(in) :: K4(M,M,M,M)
 
       integer :: i, j, iter, maxIter
       real*8 :: beta, alpha
@@ -963,7 +961,7 @@ contains
 
          ! CALCULATE TWO ELECTRON PART
          F2e = 0.0D0
-         call g2g_calculate2e(Pmat,K4,cbas,1,F2e,1)
+         call g2g_calculate2e(Pmat,cbas,1,F2e,1)
          F2e = 2.0D0 * F2e
 
          ! CALCULATE XC PART
