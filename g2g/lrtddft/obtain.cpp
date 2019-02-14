@@ -29,14 +29,12 @@ void Obtain::calculate(double* Tmat, FourCenter* Kmat, double* Fmat)
 void Obtain::method_A(double* T, FourCenter* K, double* F)
 {
 // T is not a symmetric matrix
-
    double Dens = 0.0f;
    int p1, p2, p3, p4;
 
    timerI = omp_get_wtime();
 #pragma omp parallel for private(p1,p2,p3,p4,Dens)
    for(int ivec=0; ivec<total_vec; ivec++) {
-
       for(int i=0; i<int_total; i++) {
         p1 = ivec*M2+K[i].k*M+K[i].l;
         p2 = ivec*M2+K[i].l*M+K[i].k;
@@ -51,7 +49,6 @@ void Obtain::method_A(double* T, FourCenter* K, double* F)
         F[p1] += K[i].result * Dens;
         F[p2] += K[i].result * Dens;
      }
-
    }
    timerF = omp_get_wtime();
 }

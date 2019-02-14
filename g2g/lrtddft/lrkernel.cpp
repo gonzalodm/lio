@@ -24,7 +24,6 @@ extern Partition partition;
 extern "C" void g2g_calculate2e_(double* Tmat,double* Cbas,
                                  int& numvec,double* F,int& int2elec)
 {
-// TODO: LA PARALELIZACION CON OMP ANDA PARA EL ORTO!!!!!!!
    int M = fortran_vars.m;
    int M2 = M*M;
    int M3 = M2*M;
@@ -66,9 +65,8 @@ namespace G2G {
 void Partition::solve_lr(double* T,double* C,double* F,int& NCO)
 {
 
-#pragma omp parallel for num_threads(cpu_threads + gpu_threads) schedule( \
-    static)
-   for(uint i=0;i<work.size();i++) {
+#pragma omp parallel for schedule(static)
+    for(uint i=0;i<work.size();i++) {
       for(uint j=0;j<work[i].size();j++) {
          int ind = work[i][j];
          if(ind >= cubes.size()) {
@@ -204,12 +202,12 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
 
    }  // END points loop
 
-   // ARMAMOS LA FOCK GLOBAL CON LA DEL GRUPO DE PUNTOS
-   int row, col;
+// Obtain global fock
    for(int i=0; i<group_m; i++) {
-     row = numeros[i];
+     int row = numeros[i];
+#pragma omp critical
      for(int j=0; j<=i; j++) {
-       col = numeros[j];
+       int col = numeros[j];
        F[row*M+col] += smallFock[i*group_m+j];
        F[col*M+row] = F[row*M+col];
      }
