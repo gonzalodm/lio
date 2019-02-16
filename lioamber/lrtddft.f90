@@ -1276,11 +1276,7 @@ contains
          Cvir_trans(j,:) = Coef(:,NCO+j)
       enddo
 
-      do i=1,M
-      do j=1,M
-         Coef_trans(j,i) = Coef(i,j)
-      enddo
-      enddo
+      Coef_trans = transpose(Coef)
    end subroutine basis_init
 
    subroutine basis_deinit()

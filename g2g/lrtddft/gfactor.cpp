@@ -162,6 +162,7 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
 
    for(int i=0;i<group_m;i++) {
      row = numeros[i];
+#pragma omp critical
      for(int j=0;j<=i;j++) {
        col = numeros[j];
        F[row*M+col] += smallFock[i*group_m+j];
