@@ -70,8 +70,8 @@ subroutine SCF(E)
    use fileio       , only: write_energies, write_energy_convergence, &
                             write_final_convergence
    use fileio_data  , only: verbose
-   use lr_data, only: lresp
-   use lrtddft, only: linear_response
+   use lrdata, only: lresp
+   use excitedsubs, only: linear_response
    use converger_ls , only: Rho_LS, changed_to_LS, P_conver, P_linearsearch_init
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!

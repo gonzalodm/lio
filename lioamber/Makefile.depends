@@ -158,6 +158,21 @@ $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/ehrendata.mod
 
 
 ################################################################################
+# LINEAR RESPONSE SUBROUTINES
+include excitedsubs/excitedsubs.mk
+OBJECTS += lrdata.o
+OBJECTS += excitedsubs.o
+SRCDIRS += excitedsubs
+
+tmplist :=
+tmplist += SCF.o
+$(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/excitedsubs.mod
+
+tmplist := excitedsubs.o SCF.o basis_data.o lionml_data.o
+$(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/lrdata.mod
+
+################################################################################
+
 OBJECTS += transport.o
 
 tmplist :=
@@ -193,7 +208,7 @@ $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/debug_tools.mod
 OBJECTS += basis_data.o
 
 tmplist :=
-tmplist += ehrensubs.o init_lio.o lio_finalize.o lr_data.o
+tmplist += ehrensubs.o init_lio.o lio_finalize.o
 $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/basis_data.mod
 
 ################################################################################
@@ -203,9 +218,9 @@ OBJECTS += faint_cpu.o
 #
 modusrs :=
 modusrs += cublasmath.o ehrensubs.o liomain.o maskrmm.o
-modusrs += predictor.o SCF.o SCFop.o TD.o field_subs.o lrtddft.o
+modusrs += predictor.o SCF.o SCFop.o TD.o field_subs.o
 modusrs += dft_get_mm_forces.o dft_get_qm_forces.o
-modusrs += converger_ls.o
+modusrs += converger_ls.o excitedsubs.o
 $(modusrs:%.o=$(OBJPATH)/%.o) : ${OBJPATH}/faint_cpu.mod
 
 ################################################################################
@@ -299,13 +314,6 @@ OBJECTS += cubegen.o
 modusrs := SCF.o
 $(modusrs:%.o=$(OBJPATH)/%.o) : ${OBJPATH}/cubegen.mod
 
-
-################################################################################
-OBJECTS += lrtddft.o
-
-tmplist :=
-tmplist += SCF.o lionml_data.o basis_data.o
-$(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/lrtddft.mod
 
 ################################################################################
 # TO-DO: reformulate the following modules so that there exists mathcpu,

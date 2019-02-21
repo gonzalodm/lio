@@ -123,7 +123,7 @@ subroutine basis_init(basis_name, fitting_name, n_atoms, atom_Z, out_stat)
                          indexii, indexiid, natomc, jatc, nnps, nnpp, nnpd
    use basis_data, only: ang_mom, ang_momd, max_f_per_atom, max_c_per_atom,    &
                          c_raw
-   use lr_data, only: lresp, cbas, cbasx, fbas
+   use lrdata, only: lresp, cbas, cbasx, fbas
    implicit none
    ! Inputs:
    !   n_atoms        : the number of atoms in the QM system.
@@ -763,7 +763,7 @@ subroutine read_basis_internal(basis_file, fitting_file, n_funcs, n_fits,     &
                                iostatus)
    use basis_data   , only: ANG_DEG
    use constants_mod, only: PI32
-   use lr_data, only: lresp, cbas
+   use lrdata, only: lresp, cbas
    implicit none
    integer         , intent(in)  :: max_con_per_atom, max_fun_per_atom, &
                                     n_atoms, atom_Z(n_atoms), n_funcs, n_fits
@@ -1016,7 +1016,7 @@ end subroutine read_basis_internal
 
 subroutine reorder_basis(expon, coeff, atom_of_funct, n_cont, mixed_index, &
                          basis_size, max_cont, l_of_funct, n_shell, craw)
-   use lr_data, only: lresp, fbas, cbas, cbasx
+   use lrdata, only: lresp, fbas, cbas, cbasx
    implicit none
    integer         , intent(in)    :: basis_size, max_cont, n_shell(0:3), &
                                       l_of_funct(basis_size)

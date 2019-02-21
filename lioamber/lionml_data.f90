@@ -50,7 +50,7 @@ module lionml_data
    use transport_data    , only: transport_calc, generate_rho0, nbias,         &
                                  save_charge_freq, driving_rate, Pop_Drive
    use ghost_atoms_data  , only: n_ghosts, ghost_atoms
-   use lr_data           , only: lresp, nstates, root, FCA, nfo, nfv, fitLR
+   use lrdata           , only: lresp, nstates, root, FCA, nfo, nfv, fitLR
    use converger_ls      , only: Rho_LS, P_oscilation_analisis
    implicit none
 

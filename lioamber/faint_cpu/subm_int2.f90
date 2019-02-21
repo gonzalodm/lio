@@ -52,7 +52,7 @@ subroutine int2(Gmat, Ginv, r, d, ntatom)
    double precision              :: LA_U(1), LA_VT(1)
 
    sq3 = 1.D0
-   if (NORM) sq3 = sqrt(3.D0)
+   if (NORM) sq3 = dsqrt(3.D0)
    nsd = nshelld(0); npd = nshelld(1); ndd = nshelld(2)
    Md2 = 2*Md
 
@@ -71,7 +71,7 @@ subroutine int2(Gmat, Ginv, r, d, ntatom)
       do ncj = 1, ncontd(jfunct)
          Zij = ad(ifunct,nci) + ad(jfunct,ncj)
          t0  = ad(ifunct,nci) * ad(jfunct,ncj)
-         t1  = sqrt(Zij) * t0
+         t1  = dsqrt(Zij) * t0
 
          uf    = t0 * dd / Zij
          ccoef = cd(ifunct,nci) * cd(jfunct,ncj)
@@ -93,7 +93,7 @@ subroutine int2(Gmat, Ginv, r, d, ntatom)
       do ncj = 1, ncontd(jfunct)
          Zij = ad(ifunct,nci) + ad(jfunct,ncj)
          t0  = ad(ifunct,nci) * ad(jfunct,ncj)
-         t1  = sqrt(Zij) * t0
+         t1  = dsqrt(Zij) * t0
          t2  = pi5 / t1
 
          Q(1) = (ad(ifunct,nci) * r(Nucd(ifunct),1) + &
@@ -131,7 +131,7 @@ subroutine int2(Gmat, Ginv, r, d, ntatom)
          Zij = ad(ifunct,nci) + ad(jfunct,ncj)
          Z2  = 2.D0 * Zij
          t0  = ad(ifunct,nci) * ad(jfunct,ncj)
-         t1  = sqrt(Zij) * t0
+         t1  = dsqrt(Zij) * t0
          t2  = pi5 / t1
 
          Q(1) = (ad(ifunct,nci) * r(Nucd(ifunct),1) + &
@@ -179,7 +179,7 @@ subroutine int2(Gmat, Ginv, r, d, ntatom)
       do ncj = 1, ncontd(jfunct)
          Zij = ad(ifunct,nci) + ad(jfunct,ncj)
          t0  = ad(ifunct,nci) * ad(jfunct,ncj)
-         t1  = sqrt(Zij) * t0
+         t1  = dsqrt(Zij) * t0
          t2  = pi5 / t1
 
          Q(1) = (ad(ifunct,nci) * r(Nucd(ifunct),1) + &
@@ -229,7 +229,7 @@ subroutine int2(Gmat, Ginv, r, d, ntatom)
          Zij = ad(ifunct,nci) + ad(jfunct,ncj)
          Z2  = 2.D0 * Zij
          t0  = ad(ifunct,nci) * ad(jfunct,ncj)
-         t1  = sqrt(Zij) * t0
+         t1  = dsqrt(Zij) * t0
          t2  = pi5 / t1
          t3  = t0  / Zij
 
@@ -299,7 +299,7 @@ subroutine int2(Gmat, Ginv, r, d, ntatom)
          za  = 2.D0 * ad(ifunct,nci)
          zc  = 2.D0 * ad(jfunct,ncj)
          t0  = ad(ifunct,nci) * ad(jfunct,ncj)
-         t1  = sqrt(Zij) * t0
+         t1  = dsqrt(Zij) * t0
          t2  = pi5 / t1
          ti  = ad(ifunct,nci) / Zij
          tj  = ad(jfunct,ncj) / Zij
