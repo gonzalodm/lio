@@ -8,6 +8,7 @@ module lr_data
 
    logical :: lresp = .false.
    logical :: fbas = .true.
+   logical :: fitLR = .false.
    integer :: Nvirt, dim, NCOlr, Mlr
    integer :: nstates = 3
    integer :: root = 0
@@ -35,17 +36,16 @@ contains
    subroutine linear_response(MatCoef,VecEne)
    use lr_data, only: Nvirt,dim,nstates,eigenval,&
                       eigenvec,cbas,root,FCA,nfo,nfv,&
-                      NCOlr, Mlr
+                      NCOlr, Mlr, fitLR
    use garcha_mod, only: NCO, M, c, a
 
    implicit none
 
    real*8, intent(in) :: MatCoef(M,M)
    real*8, intent(in) :: VecEne(M)
-   logical :: fitLR
 
 !  COUNTERS
-   integer :: i, j, k
+   integer :: i, j
 !  IF FCA IS USED
    real*8, dimension(:), allocatable :: Ene_LR
    real*8, dimension(:,:), allocatable :: Coef_LR
@@ -164,13 +164,14 @@ contains
 
 !    CALCULATE 2E INTEGRALS
      allocate(FM2(M,M,vec_dim)); FM2 = 0.0D0
-     fitLR = .true.
+     call g2g_timer_start('2E integrals of vectrs')
      if (.not. fitLR) then
         call g2g_calculate2e(tmatAO,cbas,vec_dim,FM2,calc_2elec)
         calc_2elec = 1 ! TURN OFF CALCULATE INTEGRALS
      else
         call calc2eFITT(tmatAO,FM2,vec_dim,M)
      endif
+     call g2g_timer_stop('2E integrals of vectrs')
 
 !    CALCULATE DFT INTEGRALS
      allocate(FXC(M,M,vec_dim))
@@ -695,7 +696,7 @@ contains
    end subroutine ObtainOsc
 
    subroutine Zvector(C,Ene,X,NCO,M,Ndim)
-   use lr_data, only: cbas, root
+   use lr_data, only: cbas, root, fitLR
       implicit none
 
       integer, intent(in) :: NCO, M, Ndim
@@ -749,8 +750,14 @@ contains
       allocate(PA(M,M,2),F2e(M,M,2)); F2e = 0.0D0
       PA(:,:,1) = Xmat; PA(:,:,2) = TundAO
       deallocate(Xmat)
-      call g2g_calculate2e(PA,cbas,2,F2e,1)
-      F2e = 2.0D0 * F2e
+
+      if ( .not. fitLR) then
+         call g2g_calculate2e(PA,cbas,2,F2e,1)
+         F2e = 2.0D0 * F2e
+      else
+         call calc2eFITT(PA,F2e,2,M)
+      endif
+      deallocate(PA)
 
       ! FT + F2eT
       FT = F2e(:,:,2) + 2.0D0 * FT
@@ -929,7 +936,7 @@ contains
    end subroutine RCalculate
  
    subroutine PCG_solve(bvec,Rho_urel,Coef,E,M,NCO,Nvirt,Ndim)
-      use lr_data, only: cbas
+      use lr_data, only: cbas, fitLR
       implicit none
 
       integer, intent(in) :: NCO, Nvirt, Ndim, M
@@ -939,7 +946,7 @@ contains
       real*8 :: beta, alpha
       logical :: conv = .false.
       real*8, dimension(:), allocatable :: R, Z, Pk, Mprec, ApIA, X
-      real*8, dimension(:,:), allocatable :: Pmat, F2e, Fxc, Ftot
+      real*8, dimension(:,:), allocatable :: Pmat, F2e, Fxc, Ftot, CopyP
 
 !     START PRECONDITINED CONJUGATE GRADIENT
       maxIter = 50
@@ -956,7 +963,7 @@ contains
       call Pbeta_calc(R,Mprec,beta,Pk,Ndim)
 
       allocate(Pmat(M,M),F2e(M,M),Fxc(M,M),Ftot(M,M))
-      allocate(ApIA(Ndim),X(Ndim)); X = 0.0D0
+      allocate(ApIA(Ndim),X(Ndim),CopyP(M,M)); X = 0.0D0
 
       write(*,*) ""
       write(*,"(1X,A)") "Start PCG loop"
@@ -968,8 +975,13 @@ contains
 
          ! CALCULATE TWO ELECTRON PART
          F2e = 0.0D0
-         call g2g_calculate2e(Pmat,cbas,1,F2e,1)
-         F2e = 2.0D0 * F2e
+         if ( .not. fitLR ) then
+            call g2g_calculate2e(Pmat,cbas,1,F2e,1)
+            F2e = 2.0D0 * F2e
+         else
+            CopyP = Pmat
+            call calc2eFITT(CopyP,F2e,1,M)
+         endif
 
          ! CALCULATE XC PART
          Fxc = 0.0D0
@@ -1004,7 +1016,7 @@ contains
 !     FORM RELAXED DENSITY OF EXCITED STATE
       call RelaxedDensity(X,Rho_urel,Coef,M,NCO,Ndim)
   
-      deallocate(R,Mprec,Pk,Pmat,F2e,Fxc,Ftot,ApIA,X)
+      deallocate(R,Mprec,Pk,Pmat,F2e,Fxc,Ftot,ApIA,X,CopyP)
    end subroutine PCG_solve
 
    subroutine RelaxedDensity(Z,Rho_urel,C,M,NCO,N)
@@ -1337,13 +1349,6 @@ contains
       M7  = 1 + 3*MM  ! now Gmat
       M9  = M7 + MMd ! now Ginv
      
-!     M3=1+MM ! now Pnew
-!     M5=M3+MM! now S, F also uses the same position after S was used
-!     M7=M5+MM! now G
-!     M9=M7+MMd ! now Gm
-!     M11=M9+MMd! now H
-
-
       do ist=1,numvec
          do i=1,M
          do j=1,i-1
@@ -1353,10 +1358,6 @@ contains
          call sprepack('L',M,Vec,Mat(:,:,ist))
          call int3lu(notE,Vec,Fmat_b,Fock_vec,RMM(M7:M7+MMd),&
                      RMM(M9:M9+MMd),Hmat,OPEN)
-!        do k=1,MM
-!           print*,k,Vec(k),2.0D0*Fock_vec(k)
-!        enddo
-!        stop
             ! int3lu(E2, rho, Fmat_b, Fmat, Gmat, 
             !        Ginv, Hmat, open_shell)
 
