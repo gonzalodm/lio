@@ -37,10 +37,12 @@ contains
                       eigenvec,cbas,root,FCA,nfo,nfv,&
                       NCOlr, Mlr
    use garcha_mod, only: NCO, M, c, a
+
    implicit none
 
    real*8, intent(in) :: MatCoef(M,M)
    real*8, intent(in) :: VecEne(M)
+   logical :: fitLR
 
 !  COUNTERS
    integer :: i, j, k
@@ -162,8 +164,13 @@ contains
 
 !    CALCULATE 2E INTEGRALS
      allocate(FM2(M,M,vec_dim)); FM2 = 0.0D0
-     call g2g_calculate2e(tmatAO,cbas,vec_dim,FM2,calc_2elec)
-     calc_2elec = 1 ! TURN OFF CALCULATE INTEGRALS
+     fitLR = .true.
+     if (.not. fitLR) then
+        call g2g_calculate2e(tmatAO,cbas,vec_dim,FM2,calc_2elec)
+        calc_2elec = 1 ! TURN OFF CALCULATE INTEGRALS
+     else
+        call calc2eFITT(tmatAO,FM2,vec_dim,M)
+     endif
 
 !    CALCULATE DFT INTEGRALS
      allocate(FXC(M,M,vec_dim))
@@ -533,8 +540,8 @@ contains
 
        MAX_ERROR = 0.0D0
        MAX_ENE = 0.0D0
-       tolv = 1.0D-6
-       tole = 1.0D-6
+       tolv = 1.0D-7
+       tole = 1.0D-7
        Nvirt = M - NCO
        NCOc = NCO + 1
 
@@ -1295,6 +1302,70 @@ contains
       real*8, intent(inout) :: C(M,N)
 
       call dgemm('N','N',M,N,K,alpha,A,M,B,K,beta,C,M)
-
    end subroutine multlr
+
+   subroutine calc2eFITT(Mat,Fock,numvec,M)
+      use garcha_mod, only: RMM, Md, OPEN
+      use faint_cpu, only: int3lu
+      implicit none
+      
+      integer, intent(in) :: numvec, M
+      real*8, intent(inout) :: Mat(M,M,numvec)
+      real*8, intent(out) :: Fock(M,M,numvec)
+
+      integer :: MM, MMd, M7, M9, ist, i, j
+      integer :: k ! eliminar
+      real*8, dimension(:), allocatable :: Vec, Fock_vec
+
+      !This variables is not refrence here
+      real*8 :: notE = 0.0D0
+      real*8, dimension(:), allocatable :: Fmat_b, Hmat
+
+      print*, "Calcula 2e integrals with fitting"
+
+      MM = M*(M+1)/2
+      allocate(Vec(MM),Fock_vec(MM))
+
+      ! Fmat_b = only works in open shell
+      ! Hmat = this initialize Fock, in this case this is zero
+      allocate(Fmat_b(MM),Hmat(MM))
+      Hmat = 0.0D0
+      Fmat_b = 0.0D0
+
+      ! Pointers to Gmat and Ginv
+      MMd = Md * (Md+1) / 2
+      M7  = 1 + 3*MM  ! now Gmat
+      M9  = M7 + MMd ! now Ginv
+     
+!     M3=1+MM ! now Pnew
+!     M5=M3+MM! now S, F also uses the same position after S was used
+!     M7=M5+MM! now G
+!     M9=M7+MMd ! now Gm
+!     M11=M9+MMd! now H
+
+
+      do ist=1,numvec
+         do i=1,M
+         do j=1,i-1
+            Mat(i,j,ist) = Mat(i,j,ist) + Mat(j,i,ist)
+         enddo
+         enddo
+         call sprepack('L',M,Vec,Mat(:,:,ist))
+         call int3lu(notE,Vec,Fmat_b,Fock_vec,RMM(M7:M7+MMd),&
+                     RMM(M9:M9+MMd),Hmat,OPEN)
+!        do k=1,MM
+!           print*,k,Vec(k),2.0D0*Fock_vec(k)
+!        enddo
+!        stop
+            ! int3lu(E2, rho, Fmat_b, Fmat, Gmat, 
+            !        Ginv, Hmat, open_shell)
+
+         ! Transform vec -> mat
+         Fock_vec = 2.0D0 * Fock_vec
+         call spunpack('L', M, Fock_vec, Fock(:,:,ist))
+      enddo
+
+      deallocate(Fmat_b,Hmat,Vec,Fock_vec)
+   end subroutine calc2eFITT
+
 end module lrtddft

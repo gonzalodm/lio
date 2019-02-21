@@ -203,7 +203,7 @@ OBJECTS += faint_cpu.o
 #
 modusrs :=
 modusrs += cublasmath.o ehrensubs.o liomain.o maskrmm.o
-modusrs += predictor.o SCF.o SCFop.o TD.o field_subs.o
+modusrs += predictor.o SCF.o SCFop.o TD.o field_subs.o lrtddft.o
 modusrs += dft_get_mm_forces.o dft_get_qm_forces.o
 modusrs += converger_ls.o
 $(modusrs:%.o=$(OBJPATH)/%.o) : ${OBJPATH}/faint_cpu.mod
