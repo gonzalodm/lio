@@ -124,6 +124,13 @@ void PointGroupCPU<scalar_type>::solve_closed(
       const scalar_type* gxv = gX.row(point);
       const scalar_type* gyv = gY.row(point);
       const scalar_type* gzv = gZ.row(point);
+      // Hessianos de las funciones bases
+      // hPX = XX
+      // hPY = YY
+      // hPZ = ZZ
+      // hIX = XY
+      // hIY = XZ
+      // hIZ = YZ
       const scalar_type* hpxv = hPX.row(point);
       const scalar_type* hpyv = hPY.row(point);
       const scalar_type* hpzv = hPZ.row(point);
@@ -212,6 +219,8 @@ void PointGroupCPU<scalar_type>::solve_closed(
 
   timers.forces.start();
   if (compute_forces) {
+    cout << "forces SCF" << endl;
+    cout << "total_nucleii() " << this->total_nucleii() << endl;
     HostMatrix<scalar_type> ddx, ddy, ddz;
     ddx.resize(this->total_nucleii(), 1);
     ddy.resize(this->total_nucleii(), 1);
@@ -224,6 +233,8 @@ void PointGroupCPU<scalar_type>::solve_closed(
       for (int i = 0, ii = 0; i < this->total_functions_simple(); i++) {
         uint nuc = this->func2local_nuc(ii);
         uint inc_i = this->small_function_type(i);
+        cout << "ii func2local_nuc(ii) " << ii << " " << this->func2local_nuc(ii) << endl;
+        cout << "i small_function_type(i) " << i << " " << this->small_function_type(i) << endl;
         scalar_type tddx = 0, tddy = 0, tddz = 0;
         for (uint k = 0; k < inc_i; k++, ii++) {
           scalar_type w = 0.0;
@@ -243,6 +254,7 @@ void PointGroupCPU<scalar_type>::solve_closed(
       for (int i = 0; i < this->total_nucleii(); i++) {
         forces_mat[point][i] = vec_type3(ddx(i), ddy(i), ddz(i)) * factor;
       }
+    exit(-1);
     }
     /* accumulate forces for each point */
     if (forces_mat.size() > 0) {

@@ -1,9 +1,10 @@
-subroutine PCG_solve(bvec,Rho_urel,Coef,E,M,NCO,Nvirt,Ndim)
+subroutine PCG_solve(bvec,Rho_urel,Xmat,Coef,E,M,NCO,Nvirt,Ndim)
 use lrdata, only: cbas, fitLR
    implicit none
 
    integer, intent(in) :: NCO, Nvirt, Ndim, M
    real*8, intent(in) :: bvec(Ndim), E(M), Coef(M,M), Rho_urel(M,M)
+   real*8, intent(in) :: Xmat(M,M)
 
    integer :: i, j, iter, maxIter
    real*8 :: beta, alpha
@@ -77,7 +78,7 @@ use lrdata, only: cbas, fitLR
    enddo ! ENDDO LOOP PCG
 
 !  FORM RELAXED DENSITY OF EXCITED STATE
-   call RelaxedDensity(X,Rho_urel,Coef,M,NCO,Ndim)
+   call RelaxedDensity(X,Rho_urel,Xmat,Coef,M,NCO,Ndim)
 
    deallocate(R,Mprec,Pk,Pmat,F2e,Fxc,Ftot,ApIA,X,CopyP)
 end subroutine PCG_solve

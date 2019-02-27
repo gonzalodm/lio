@@ -3,6 +3,8 @@
 ################################################################################
 
 all: liosolo liblio g2g
+again:
+	make cuda=0 intel=0 precision=1 libxc=1 libint=1 -j
 
 
 .PHONY: liosolo

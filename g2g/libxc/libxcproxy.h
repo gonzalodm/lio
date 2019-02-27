@@ -605,11 +605,13 @@ void LibxcProxy <T, width>::coefZv(double* rho,double* sgm, // inputs
    xc_gga(&funcForExchange,1,dens,sigma,&exc,vrhoX,vsigmaX,
           v2rho2X,v2rhosigmaX,v2sigma2X,v3rho3X,v3rho2sigmaX,
           v3rhosigma2X,v3sigma3X);
+   cout << "x " << exc << endl;
  
    // Correlation Values
    xc_gga(&funcForCorrelation,1,dens,sigma,&exc,vrhoC,vsigmaC,
           v2rho2C,v2rhosigmaC,v2sigma2C,v3rho3C,v3rho2sigmaC,
           v3rhosigma2C,v3sigma3C);
+   cout << "c " << exc << endl;
 
    // Results: The first values corresponding to exchange values
    // first derivative

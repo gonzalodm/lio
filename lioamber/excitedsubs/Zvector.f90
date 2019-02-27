@@ -52,7 +52,6 @@ use lrdata, only: cbas, root, fitLR
 !  2 = tiene la parte 2e de Tund
    allocate(PA(M,M,2),F2e(M,M,2)); F2e = 0.0D0
    PA(:,:,1) = Xmat; PA(:,:,2) = TundAO
-   deallocate(Xmat)
 
    if ( .not. fitLR) then
       call g2g_calculate2e(PA,cbas,2,F2e,1)
@@ -79,7 +78,7 @@ use lrdata, only: cbas, root, fitLR
    call RCalculate(FXAB,FXIJ,FTIA,GXCIA,X,Rvec,NCO,Nvirt,Ndim)
 
 !  SOLVE EQUATION AX=R WITH PCG METHOD     
-   call PCG_solve(Rvec,TundAO,C,Ene,M,NCO,Nvirt,Ndim)
+   call PCG_solve(Rvec,TundAO,Xmat,C,Ene,M,NCO,Nvirt,Ndim) ! X temporal por ahora
 
-   deallocate(TundAO,FXAB,FXIJ,FTIA,GXCIA,Rvec)
+   deallocate(TundAO,FXAB,FXIJ,FTIA,GXCIA,Rvec,Xmat)
 end subroutine Zvector

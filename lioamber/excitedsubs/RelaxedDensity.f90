@@ -1,4 +1,4 @@
-subroutine RelaxedDensity(Z,Rho_urel,C,M,NCO,N)
+subroutine RelaxedDensity(Z,Rho_urel,Xmat,C,M,NCO,N)
 use garcha_mod, only: RMM, &
                       Smat, mulliken, Iz, natom, Nuc ! for mulliken
 use fileio    , only: write_population ! for mulliken
@@ -7,7 +7,7 @@ use lrdata    , only: root ! for mulliken
    implicit none
 
    integer, intent(in) :: M, NCO, N
-   real*8, intent(in) :: Z(N), C(M,M), Rho_urel(M,M)
+   real*8, intent(in) :: Z(N), C(M,M), Rho_urel(M,M), Xmat(M,M)
 
    integer :: i, j, Nvirt, NCOc, pos, M2
    real*8, dimension(:,:), allocatable :: Rho_fund, Rel_diff, Rho_exc
@@ -57,13 +57,19 @@ use lrdata    , only: root ! for mulliken
    enddo
 
 !  SAVE EXCITED RHO INTO RMM
-   M2 = M * 2
-   do i=1,M
-      RMM(i + (M2-i)*(i-1)/2) = Rho_exc(i,i)
-      do j = i+1, M
-         RMM(j + (M2-i)*(i-1)/2) = Rho_exc(i,j) * 2.0D0
+   if (.false.) then
+      M2 = M * 2
+      do i=1,M
+         RMM(i + (M2-i)*(i-1)/2) = Rho_exc(i,i)
+         do j = i+1, M
+            RMM(j + (M2-i)*(i-1)/2) = Rho_exc(i,j) * 2.0D0
+         enddo
       enddo
-   enddo
+   endif
+
+! Temporary for forces in excited states
+   call forcesexc(Rho_fund,Rel_diff,Xmat,C,M,NCO)
+! ######################################
 
 !   TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
 !   MULLIKEN POPULATION

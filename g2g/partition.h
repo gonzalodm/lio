@@ -139,6 +139,7 @@ class PointGroup {
 
   virtual void solve_closed_lr(double* T,double* C,double* F,int& NCO) = 0;
   virtual void solve_3rd_der(double* Tmat,double* F,int& DER) = 0;
+  virtual void solve_for_exc(double*P,double*V,double*C,double*F,int& NCO) = 0;
 
   bool is_significative(FunctionType, double exponent, double coeff, double d2);
 
@@ -189,6 +190,7 @@ class PointGroupCPU : public PointGroup<scalar_type> {
   virtual void get_coef_input(G2G::HostMatrix<scalar_type>& rmm_input,int* nume) const;
   virtual void solve_closed_lr(double* T,double* C,double* F,int& NCO);
   virtual void solve_3rd_der(double* Tmat,double* F,int& DER);
+  virtual void solve_for_exc(double*P,double*V,double*C,double*F,int& NCO);
 
 
   typedef vec_type<scalar_type, 2> vec_type2;
@@ -224,6 +226,7 @@ class PointGroupGPU: public PointGroup<scalar_type> {
 
     virtual void solve_closed_lr(double* T,double* C,double* F,int& NCO);
     virtual void solve_3rd_der(double* Tmat,double* F,int& DER);
+    virtual void solve_for_exc(double*P,double*V,double*C,double*F,int& NCO);
 
     typedef vec_type<scalar_type,2> vec_type2;
     typedef vec_type<scalar_type,3> vec_type3;
@@ -256,6 +259,7 @@ class Partition {
 
     void solve_lr(double* T,double* C,double* F,int& NCO);
     void solve_Gxc(double* Tmat,double* F,int& DER);
+    void solveForcesExc(double*P,double*V,double*C,double*F,int& NCO);
 
     std::vector<PointGroup<base_scalar_type>*> cubes;
     std::vector<PointGroup<base_scalar_type>*> spheres;

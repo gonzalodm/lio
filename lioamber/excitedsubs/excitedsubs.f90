@@ -45,4 +45,6 @@ contains
 #include "XmatForm.f90"
 #include "Zvector.f90"
 
+#include "forcesexc.f90"
+
 end module excitedsubs

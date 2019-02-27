@@ -35,5 +35,6 @@ included += vecMOtomatMO.f90
 included += VecToMat.f90
 included += XmatForm.f90
 included += Zvector.f90
+included += forcesexc.f90
 
 $(OBJPATH)/excitedsubs.o : $(included) excitedsubs.mk
