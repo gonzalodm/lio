@@ -78,10 +78,15 @@ void calc_gradients(double* dens, double* diff, double* trad, double sigma)
             v2rho2,v2rhosigma,v2sigma2,
             v3rho3,v3rho2sigma,v3rhosigma2,v3sigma3,
             DDUM,VDUM);
+  
+   // COPY RESULTS
+   for(int i=0; i<4; i++) {
+      dens[i] = DDUM[i];
+      diff[i] = PDUM[i];
+      trad[i] = VDUM[i];
+   }
 
-
-
-
-
-
+   free(DDUM); DDUM = NULL;
+   free(PDUM); PDUM = NULL;
+   free(VDUM); VDUM = NULL;
 }

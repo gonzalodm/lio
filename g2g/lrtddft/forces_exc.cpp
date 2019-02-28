@@ -143,7 +143,48 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
     diff[0] = pp; diff[1] = ppx; diff[2] = ppy; diff[3] = ppz;
     trad[0] = pt; trad[1] = ptx; trad[2] = pty; trad[3] = ptz;
 
+    // esto sobreescribe dens, diff, trad
     calc_gradients(dens,diff,trad,sigma);
+
+    // FORCES CALCULATE
+    double DJII, PJII, VJII;
+    double temp[4];
+    // total_functions_simple: cantidad de bases, s+p+d (sin tener en cuenta el x3 para p y el x5 para d
+    for (int i = 0, ii = 0; i < this->total_functions_simple(); i++) {
+
+       // func2local_nuc: da a que nucleo LOCAL pertenece la base ii
+       uint nuc = this->func2local_nuc(ii);
+
+       // small_function_type: da cuantas funciones tiene ese tipo: s->1, p->3, d->5
+       uint inc_i = this->small_function_type(i);
+       scalar_type tddx = 0, tddy = 0, tddz = 0;
+       for (uint k = 0; k < inc_i; k++, ii++) {
+          double grdx, grdy, grdz; grdx = grdy = grdz = 0.0f;
+          for (uint j = 0; j < group_m; j++) {
+             DJII = rmm_input(j,ii) * (ii == j ? 2 : 1);
+             PJII = Pred(j,ii);
+             VJII = Vred(j,ii);
+             temp[0] = 2.0f * (dens[0]*DJII + diff[0]*PJII + trad[0]*VJII);
+             temp[1] = 2.0f * (dens[0]*DJII + diff[0]*PJII + trad[0]*VJII);
+             temp[2] = 2.0f * (dens[0]*DJII + diff[0]*PJII + trad[0]*VJII);
+             temp[3] = 2.0f * (dens[0]*DJII + diff[0]*PJII + trad[0]*VJII);
+
+             gradx += temp[0] * 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
    } // END POINTS
