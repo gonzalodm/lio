@@ -1002,6 +1002,7 @@ void calc_FXC(double* dens, double* trad,
    VDUM[2]=FNCDOMAY;
    VDUM[3]=FNCDOMAZ;
 
+/*
    cout << "DDUM[0] " << DDUM[0] << endl;
    cout << "DDUM[1] " << DDUM[1] << endl;
    cout << "DDUM[2] " << DDUM[2] << endl;
@@ -1010,7 +1011,7 @@ void calc_FXC(double* dens, double* trad,
    cout << "VDUM[1] " << VDUM[1] << endl;
    cout << "VDUM[2] " << VDUM[2] << endl;
    cout << "VDUM[3] " << VDUM[3] << endl;
-   exit(-1);
+*/
 
 /*
 C     FOR GRDFUN
