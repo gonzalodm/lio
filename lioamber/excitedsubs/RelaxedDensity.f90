@@ -68,7 +68,7 @@ use lrdata    , only: root ! for mulliken
    endif
 
 ! Temporary for forces in excited states
-   call forcesexc(Rho_fund,Rel_diff,Xmat,C,M,NCO)
+   call forcesexc(Rho_fund,Rel_diff,Z,Xmat,C,M,NCO)
 ! ######################################
 
 !   TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO

@@ -75,8 +75,8 @@ subroutine spunpack_rho(UPLO, NM, Vector, Matrix)
         do jj = 1, NM
             do ii = 1, jj - 1
                idx = ii + (jj*(jj-1)/2)
-               Matrix(ii,jj) = Vector(idx)/2
-               Matrix(jj,ii) = Vector(idx)/2
+               Matrix(ii,jj) = Vector(idx)/2.0D0
+               Matrix(jj,ii) = Vector(idx)/2.0D0
             enddo
                idx = jj + (jj*(jj-1)/2)
                Matrix(jj,jj) = Vector(idx)
@@ -85,8 +85,8 @@ subroutine spunpack_rho(UPLO, NM, Vector, Matrix)
         do ii = 1, NM
             do jj = 1, ii - 1
                 idx = ii+(2*NM-jj)*(jj-1)/2
-                Matrix(ii,jj) = Vector(idx)/2
-                Matrix(jj,ii) = Vector(idx)/2
+                Matrix(ii,jj) = Vector(idx)/2.0D0
+                Matrix(jj,ii) = Vector(idx)/2.0D0
             enddo
             idx = jj + (2*NM-jj)*(jj-1)/2
             Matrix(jj,jj) = Vector(idx)

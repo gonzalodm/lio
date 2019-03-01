@@ -46,5 +46,10 @@ contains
 #include "Zvector.f90"
 
 #include "forcesexc.f90"
+#include "Wcalculate.f90"
+#include "WSgradcalc.f90"
+#include "HCgradcalc.f90"
+#include "CoulombForce.f90"
+
 
 end module excitedsubs

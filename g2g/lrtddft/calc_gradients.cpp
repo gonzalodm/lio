@@ -34,6 +34,7 @@ void calc_gradients(double* dens, double* diff, double* trad, double sigma)
    double* v3rhosigma2 = (double*)malloc(14*sizeof(double));
    double* v3sigma3    = (double*)malloc(12*sizeof(double));
 
+/*
 // DEBUG
    // punto 1
    dens[0] = 0.20136241320638337;
@@ -52,6 +53,7 @@ void calc_gradients(double* dens, double* diff, double* trad, double sigma)
    trad[2] = 0.0000000000000000;
    trad[3] = -2.8474564875021414E-002;
 // END DEBUG
+*/
 
 
 // LIBXC CALCULATE DERIVATIVES

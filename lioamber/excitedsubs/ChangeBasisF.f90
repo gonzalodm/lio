@@ -1,5 +1,5 @@
 subroutine ChangeBasisF(FX,FT,Gxc,C,FXAB,FXIJ,FTIA,GXCIA,M,Nvirt,NCO)
-use lrdata, only: Cocc, Cocc_trans, Cvir, Cvir_trans
+use lrdata, only: Cocc, Cocc_trans, Cvir, Cvir_trans, GxcAO
 
    implicit none
 
@@ -31,7 +31,8 @@ use lrdata, only: Cocc, Cocc_trans, Cvir, Cvir_trans
    deallocate(scratch)
 
 !  FORM GXC IN BASIS OCC X VIR
-   allocate(scratch(M,Nvirt))
+   allocate(scratch(M,Nvirt),GxcAO(M,M))
+   GxcAO = Gxc ! temporal para fuerzas
    call multlr(Gxc,Cvir,scratch,M,M,Nvirt,1.0D0,0.0D0)
    call multlr(Cocc_trans,scratch,GXCIA,NCO,M,Nvirt,1.0D0,0.0D0)
    deallocate(scratch)

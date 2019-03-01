@@ -1,7 +1,7 @@
 subroutine linear_response(MatCoef,VecEne)
 use lrdata, only: Nvirt,dim,nstates,eigenval,&
                    eigenvec,cbas,root,FCA,nfo,nfv,&
-                   NCOlr, Mlr, fitLR
+                   NCOlr, Mlr, fitLR, EneSCF
 use garcha_mod, only: NCO, M, c, a
 
    implicit none
@@ -50,9 +50,10 @@ use garcha_mod, only: NCO, M, c, a
       NCOlr = NCO
       Nvirt = M - NCO
       dim = Nvirt * NCO
-      allocate(Coef_LR(M,M),Ene_LR(M))
+      allocate(Coef_LR(M,M),Ene_LR(M),EneSCF(M))
       Coef_LR = MatCoef
       Ene_LR = VecEne
+      EneSCF = VecEne ! para forces
    endif
 
 !  INITIALIZATION OF MATRIX NEEDED FOR CHANGE BASIS
@@ -74,6 +75,9 @@ use garcha_mod, only: NCO, M, c, a
 
 !  DAVIDSON INITIALIZATION
    allocate(val_old(nstates),Osc(nstates))
+
+!  For forces
+   allocate(eigenval(nstates))
 
    val_old = 1.0D0
    vec_dim = 4 * nstates
@@ -205,8 +209,13 @@ use garcha_mod, only: NCO, M, c, a
      endif
    enddo !END DAVIDSON
 
-   deallocate(vmatAO,Fv,ResMat,val_old,Osc,eigval, &
-              eigvec,AX,tvecMO,tmatAO)
+!  Copy energies for forces
+   do i=1,nstates
+      eigenval(i) = eigval(i)
+   enddo
+
+   deallocate(vmatAO,Fv,ResMat,val_old,Osc,eigvec,&
+              eigval,AX,tvecMO,tmatAO)
 
    call g2g_timer_stop('LINEAR RESPONSE')
 

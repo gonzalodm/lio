@@ -1,4 +1,5 @@
 subroutine UnDiffDens(X,T,NCO,Nvirt,M,Ndim)
+use lrdata, only: Vlr
    implicit none
 
    integer, intent(in) :: NCO, Nvirt, M, Ndim
@@ -10,6 +11,7 @@ subroutine UnDiffDens(X,T,NCO,Nvirt,M,Ndim)
    real*8, dimension(:,:), allocatable :: XM, XMtrans, Ptrash
 
    allocate(XM(NCO,Nvirt),XMtrans(Nvirt,NCO))
+   allocate(Vlr(Ndim)) ! para forces
 
 !  WE NORMALIZE TO 1/2
    raiz2 = 1.0D0 / dsqrt(2.0D0)
@@ -23,6 +25,7 @@ subroutine UnDiffDens(X,T,NCO,Nvirt,M,Ndim)
      XMtrans(j,i) = X(pos) * raiz2
    enddo
    enddo
+   Vlr = X * raiz2
 
 !  FORM UNRELAXED DIFFERENCE DENSITY MATRIX
    allocate(Ptrash(NCO,NCO))

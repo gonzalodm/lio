@@ -25,4 +25,8 @@ module lrdata
 ! Matrix needed for change basis
    real*8, dimension(:,:), allocatable :: Coef_trans, Cocc, Cocc_trans, &
                                           Cvir, Cvir_trans
+! Forces matrix
+   real*8, dimension(:), allocatable :: Qvec,Vlr
+   real*8, dimension(:), allocatable :: EneSCF
+   real*8, dimension(:,:), allocatable :: GxcAO
 end module lrdata
