@@ -38,7 +38,10 @@ included += Zvector.f90
 included += forcesexc.f90
 included += Wcalculate.f90
 included += WSgradcalc.f90
-included += HCgradcalc.f90
+included += HVgradcalc.f90
 included += CoulombForce.f90
+included += varcoef_calc.f90
+included += int2GExc.f90
+included += int3GExc.f90
 
 $(OBJPATH)/excitedsubs.o : $(included) excitedsubs.mk

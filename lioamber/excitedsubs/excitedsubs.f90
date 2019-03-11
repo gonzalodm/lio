@@ -48,8 +48,12 @@ contains
 #include "forcesexc.f90"
 #include "Wcalculate.f90"
 #include "WSgradcalc.f90"
-#include "HCgradcalc.f90"
+#include "HVgradcalc.f90"
 #include "CoulombForce.f90"
+#include "varcoef_calc.f90"
+#include "int2GExc.f90"
+#include "int3GExc.f90"
+
 
 
 end module excitedsubs

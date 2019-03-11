@@ -1,5 +1,5 @@
-subroutine HCgradcalc(rho,for,M)
-use garcha_mod, only: RMM, d, r, Iz, natom, ntatom
+subroutine HVgradcalc(rho,for,M)
+use garcha_mod, only: d, r, Iz, natom, ntatom
 use faint_cpu, only: int1G
 
    implicit none
@@ -11,7 +11,7 @@ use faint_cpu, only: int1G
    integer :: i, j, ind, MM 
    real*8, dimension(:), allocatable :: rho_vec
 
-   ! empaquetamos la rho total (GS + excitation)
+   ! Put total rho in vector form
    MM=M*(M+1)/2
    allocate(rho_vec(MM))
    ind = 1
@@ -24,6 +24,7 @@ use faint_cpu, only: int1G
       enddo
    enddo
 
+   ! Calculate gradients of core and nuclear repulsion
    call int1G(for,rho_vec,d,r,Iz,natom,ntatom)
    deallocate(rho_vec)
-end subroutine HCgradcalc
+end subroutine HVgradcalc
