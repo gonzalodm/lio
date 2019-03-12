@@ -23,10 +23,10 @@ use garcha_mod, only: RMM
       Zmo(NCOc-i,NCO+j) = Z(pos)
    enddo
    enddo
-
    allocate(Zao(M,M))
    call matMOtomatAO(Zmo,Zao,C,M,1,.false.)
    deallocate(Zmo)
+
    Rel_diff = Rho_urel + Zao
    deallocate(Zao)
 

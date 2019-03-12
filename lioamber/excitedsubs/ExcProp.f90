@@ -1,7 +1,8 @@
 subroutine ExcProp(C_scf,E_scf)
 use lrdata, only: root, forEXC, nstates
-use garcha_mod, only: M, NCO, writeforces, natom
+use garcha_mod, only: M, NCO, writeforces, natom, doing_ehrenfest
 use td_data, only: timedep
+use maskrmm, only: rmmput_dens
    implicit none
 
    real*8, allocatable, intent(inout) :: C_scf(:,:), E_scf(:)
@@ -56,7 +57,14 @@ use td_data, only: timedep
       call RelaxedDensity(Zvec,Punr,C_scf,&
                           RhoEXC,Pdif,M,NCO,Ndim,Nvirt)
       deallocate(Punr)
-      !if ( timedep == 1 ) ! poner RhoEXC en RMM
+
+      ! Put Excited state density in RMM
+      if ( (timedep == 1 .or. doing_ehrenfest) &
+            .and. (.not. writeforces) ) then
+         print*, "--- Put Excited State Density Matrix in RMM ---"
+         call rmmput_dens( rhoEXC )
+
+      endif
 
       ! Forces in Excited State
       if ( writeforces ) then

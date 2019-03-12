@@ -25,10 +25,10 @@
   do jj=1,M
     do ii=jj,M
       idx=ii+(2*M-jj)*(jj-1)/2
-      RMM(idx)=DensMao(ii,jj)*2
+      RMM(idx)=DensMao(ii,jj)*2.0D0
     enddo
     idx=jj+(2*M-jj)*(jj-1)/2
-    RMM(idx)=RMM(idx)/2
+    RMM(idx)=RMM(idx)/2.0D0
   enddo
 
   return; end subroutine
