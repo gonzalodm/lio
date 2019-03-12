@@ -7,13 +7,13 @@ use lrdata, only: cbas, fitLR
    real*8, intent(inout) :: X(Ndim)
 
    integer :: iter, maxIter
+   logical :: conv
    real*8 :: beta, alpha
-   logical :: conv = .false.
    real*8, dimension(:), allocatable :: R, Pk, Mprec, ApIA
    real*8, dimension(:,:), allocatable :: Pmat, F2e, Fxc, Ftot, CopyP
 
 !  START PRECONDITINED CONJUGATE GRADIENT
-   maxIter = 50
+   maxIter = 50; conv = .false.
 
 !  INITIAL GUESS: Xo = 0
    allocate(R(Ndim))
