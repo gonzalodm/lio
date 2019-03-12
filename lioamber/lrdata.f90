@@ -17,5 +17,7 @@ module lrdata
    integer :: root = 0
    logical :: fitLR = .false.
 
+   ! Excited States FORCES
+   logical :: excited_forces = .false.
    real*8, dimension(:,:), allocatable :: forEXC
 end module lrdata

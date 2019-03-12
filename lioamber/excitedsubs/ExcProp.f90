@@ -1,6 +1,6 @@
 subroutine ExcProp(C_scf,E_scf)
-use lrdata, only: root, forEXC, nstates
-use garcha_mod, only: M, NCO, writeforces, natom, doing_ehrenfest
+use lrdata, only: root, forEXC, nstates, excited_forces
+use garcha_mod, only: M, NCO, natom, doing_ehrenfest
 use td_data, only: timedep
 use maskrmm, only: rmmput_dens
    implicit none
@@ -60,15 +60,17 @@ use maskrmm, only: rmmput_dens
 
       ! Put Excited state density in RMM
       if ( (timedep == 1 .or. doing_ehrenfest) &
-            .and. (.not. writeforces) ) then
+            .and. (.not. excited_forces) ) then
          print*, "--- Put Excited State Density Matrix in RMM ---"
          call rmmput_dens( rhoEXC )
 
       endif
 
       ! Forces in Excited State
-      if ( writeforces ) then
-         allocate(forEXC(natom,3))
+      excited_forces = .true.
+      if ( excited_forces ) then
+         if(allocated(forEXC)) deallocate(forEXC)
+           allocate(forEXC(natom,3))
          call forcesexc(rhoEXC,Pdif,Zvec,Trans,&
                         Qvec,Gxc,Xlr,C_scf,E_scf,deltaE,&
                         forEXC,M,Ndim,natom,NCO)

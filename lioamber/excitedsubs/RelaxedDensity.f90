@@ -32,18 +32,18 @@ use garcha_mod, only: RMM
 
    Rho_exc = Rho_fund + Rel_diff + transpose(Rel_diff)
 
-   print*, "Rho fundamental"
-   do i=1,M
-   do j=1,M
-      print*, i,j,Rho_fund(i,j)
-   enddo
-   enddo
+!  print*, "Rho fundamental"
+!  do i=1,M
+!  do j=1,M
+!     print*, i,j,Rho_fund(i,j)
+!  enddo
+!  enddo
    deallocate(Rho_fund)
 
-   print*, "relaxed density excited state"
-   do i=1,M
-   do j=1,M
-      print*, i,j,Rho_exc(i,j)
-   enddo
-   enddo
+!  print*, "relaxed density excited state"
+!  do i=1,M
+!  do j=1,M
+!     print*, i,j,Rho_exc(i,j)
+!  enddo
+!  enddo
 end subroutine RelaxedDensity
