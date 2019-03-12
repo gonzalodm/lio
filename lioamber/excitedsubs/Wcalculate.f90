@@ -1,5 +1,5 @@
 subroutine Wcalculate(Zvec,Dif,Qvec,GxcAO,Vlr,C,dE,EneSCF,Wmat,Ndim,M,NCO)
-use lrdata, only: cbas, Cocc, Cocc_trans,Coef_trans
+use lrdata, only: cbas, Cocc, Cocc_trans, Coef_trans, fitLR
    implicit none
 
    integer, intent(in) :: Ndim, M, NCO
@@ -11,14 +11,21 @@ use lrdata, only: cbas, Cocc, Cocc_trans,Coef_trans
    integer :: i, j, k
    integer :: Nvirt, pos1, pos2, NCOc
    real*8 :: temp1, temp2
-   real*8, dimension(:,:), allocatable :: F2e, Fxc, Ftot
+   real*8, dimension(:,:), allocatable :: F2e, Fxc, Ftot, Dcopy
    real*8, dimension(:,:), allocatable :: scratch, HXIJ, GXCIJ
    
    Nvirt = M - NCO
    ! Calculate 2 electron part
    allocate(F2e(M,M)); F2e = 0.0D0
-   call g2g_calculate2e(Dif,cbas,1,F2e,0)
-   F2e = 2.0D0 * F2e
+
+   if (.not. fitLR) then
+      call g2g_calculate2e(Dif,cbas,1,F2e,0)
+      F2e = 2.0D0 * F2e
+   else 
+      allocate(Dcopy(M,M)); Dcopy = Dif
+      call calc2eFITT(Dcopy,F2e,1,M)
+      deallocate(Dcopy)
+   endif
    
    ! Calculate xc part
    allocate(Fxc(M,M)); Fxc = 0.0D0
