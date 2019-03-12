@@ -36,10 +36,10 @@ subroutine forcesexc(rhoTot,DiffExc,Zvec,Xmat,&
 
    forTot = forWS + forHV + forCou + transpose(forXC)
 
-   print*, "TOTAL FORCES IN EXCITED STATE"
-   do i=1,natom
-      print*, i, forTot(i,1), forTot(i,2), forTot(i,3)
-   enddo
+!  print*, "TOTAL FORCES IN EXCITED STATE"
+!  do i=1,natom
+!     print*, i, forTot(i,1), forTot(i,2), forTot(i,3)
+!  enddo
 
    deallocate(forXC,forWS,forHV,forCou)
 end subroutine forcesexc

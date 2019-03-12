@@ -12,7 +12,7 @@
 
        use ehrendata, only: nullify_forces
        use faint_cpu, only: int1G, intSG, int3G
-       use lrdata, only: lresp, forEXC
+       use lrdata, only: excited_forces, forEXC
        implicit none
        real*8,intent(out) :: dxyzqm(3,natom)
        real*8,allocatable :: ff1G(:,:),ffSG(:,:),ff3G(:,:)
@@ -31,7 +31,7 @@
        call g2g_timer_sum_start('Forces')
 
        allocate(ff1G(natom,3),ffSG(natom,3),ff3G(natom,3))
-       if ( .not. lresp ) then
+       if ( .not. excited_forces ) then
 
           call g2g_timer_start('int1G')
           ff1G=0.0d0

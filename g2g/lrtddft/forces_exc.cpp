@@ -88,6 +88,7 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
         Cred(k,i) = C[k*M+row];
      }
    }
+   delete[] numeros; numeros = NULL;
 
 /*
    for(int i=0;i<NCO;i++)
@@ -230,6 +231,12 @@ template<class scalar_type> void PointGroupCPU<scalar_type>::
       F[global_atom*3 + 2] += sForce[i*3+2];
       //cout << "at x y z " << global_atom << " " << F[global_atom*3] << " " << F[global_atom*3+1] << " " << F[global_atom*3+2] <<endl;
    }
+
+   // Free Memory
+   free(dens); dens = NULL;
+   free(diff); diff = NULL;
+   free(trad); trad = NULL;
+   free(sForce); sForce = NULL;
 }
 
 #if FULL_DOUBLE

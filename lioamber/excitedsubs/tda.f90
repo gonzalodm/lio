@@ -18,8 +18,11 @@ use lrdata, only: nstates, cbas, root, fitLR
    real*8, dimension(:,:), allocatable :: RitzVec,ResMat
    real*8, dimension(:), allocatable :: eigval, val_old, Osc
    real*8, dimension(:,:,:), allocatable :: tmatMO,tmatAO,FM2,FXC
-   integer :: calc_2elec = 0
-   logical :: conv = .false.
+   integer :: calc_2elec
+   logical :: conv
+
+   calc_2elec = 0
+   conv = .false.
 
    call g2g_timer_start('LINEAR RESPONSE')
 

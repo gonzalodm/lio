@@ -49,6 +49,13 @@ extern "C" void g2g_calculate2e_(double* Tmat,double* Cbas,
 
    fflush(stdout); // NOT BUFFERED
 }
+extern "C" void g2g_deinit_exc_()
+{
+   printf("G2G DEINIT EXC\n");
+   free(fortran_vars.Kmat);
+   fortran_vars.Kmat = NULL;
+   fflush(stdout);
+}
 //######################################################################
 //######################################################################
 extern "C" void g2g_calculatedft_(double* Tmat,double* C,double* Fv, int& NCO)

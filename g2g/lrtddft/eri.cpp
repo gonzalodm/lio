@@ -131,7 +131,9 @@ void eri(int M,uint natoms,uint*ncont,
   std::vector<unsigned int>().swap(indv);
   std::vector<unsigned int>().swap(indk);
   std::vector<unsigned int>().swap(indl);
-
+  std::vector<Atom>().swap(atoms);
+  std::vector<int>().swap(shell2bf);
+  std::vector<Shell>().swap(obs);
 }
 
 std::vector<Atom> libint_geom(double* r,int natoms)
@@ -171,6 +173,8 @@ std::vector<libint2::Shell> make_basis(const std::vector<Atom>& atoms,
           {{atoms[centro].x,atoms[centro].y,atoms[centro].z}}
         }
      );
+     std::vector<double>().swap(exp);
+     std::vector<double>().swap(coef);
    }
 
    from = s_func;
@@ -193,6 +197,8 @@ std::vector<libint2::Shell> make_basis(const std::vector<Atom>& atoms,
            {{atoms[centro].x,atoms[centro].y,atoms[centro].z}}
          }
       );
+      std::vector<double>().swap(exp);
+      std::vector<double>().swap(coef);
    }
 
    from = s_func+p_func*3;
@@ -215,6 +221,8 @@ std::vector<libint2::Shell> make_basis(const std::vector<Atom>& atoms,
            {{atoms[centro].x,atoms[centro].y,atoms[centro].z}}
          }
       );
+      std::vector<double>().swap(exp);
+      std::vector<double>().swap(coef);
     }
 
    return obs;

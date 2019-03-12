@@ -59,6 +59,7 @@ use maskrmm, only: rmmput_dens
       deallocate(Punr)
 
       ! Put Excited state density in RMM
+      excited_forces = .true.
       if ( (timedep == 1 .or. doing_ehrenfest) &
             .and. (.not. excited_forces) ) then
          print*, "--- Put Excited State Density Matrix in RMM ---"
@@ -67,7 +68,6 @@ use maskrmm, only: rmmput_dens
       endif
 
       ! Forces in Excited State
-      excited_forces = .true.
       if ( excited_forces ) then
          if(allocated(forEXC)) deallocate(forEXC)
            allocate(forEXC(natom,3))
@@ -81,5 +81,6 @@ use maskrmm, only: rmmput_dens
    deallocate(Xlr)
 
    call basis_deinitLR()
+   call g2g_deinit_exc()
 
 end subroutine ExcProp

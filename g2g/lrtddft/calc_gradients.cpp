@@ -88,7 +88,19 @@ void calc_gradients(double* dens, double* diff, double* trad, double sigma)
       trad[i] = VDUM[i];
    }
 
+   // Free Memory
    free(DDUM); DDUM = NULL;
    free(PDUM); PDUM = NULL;
    free(VDUM); VDUM = NULL;
+
+   // Free Memory from LIBXC OUTPUTS
+   free(vrho); vrho = NULL;
+   free(vsigma); vsigma = NULL;
+   free(v2rho2); v2rho2 = NULL;
+   free(v2rhosigma); v2rhosigma = NULL;
+   free(v2sigma2); v2sigma2 = NULL;
+   free(v3rho3); v3rho3 = NULL;
+   free(v3rho2sigma); v3rho2sigma = NULL;
+   free(v3rhosigma2); v3rhosigma2 = NULL;
+   free(v3sigma3); v3sigma3 = NULL;
 }
