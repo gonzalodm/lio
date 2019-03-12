@@ -1,4 +1,8 @@
 included :=
+included += ExcProp.f90
+included += fcaApp.f90
+included += GenerateDensities.f90
+
 included += addInt.f90
 included += Alpha_calc.f90
 included += Ap_calculate.f90
@@ -43,5 +47,6 @@ included += CoulombForce.f90
 included += varcoef_calc.f90
 included += int2GExc.f90
 included += int3GExc.f90
+
 
 $(OBJPATH)/excitedsubs.o : $(included) excitedsubs.mk

@@ -1,19 +1,16 @@
-subroutine Zvector(C,Ene,X,NCO,M,Ndim)
+subroutine Zvector(C,Ene,X,TundAO,Xmat,Zvec,Qvec,Gxc,NCO,M,Ndim,Nvirt)
 use lrdata, only: cbas, root, fitLR
    implicit none
 
-   integer, intent(in) :: NCO, M, Ndim
-   real*8, intent(in) :: C(M,M), Ene(M)
-   real*8, intent(in) :: X(Ndim)
+   integer, intent(in) :: NCO, M, Ndim, Nvirt
+   real*8, intent(in) :: C(M,M), Ene(M), TundAO(M,M)
+   real*8, intent(in) :: Xmat(M,M), X(Ndim)
+   real*8, intent(inout) :: Zvec(Ndim), Qvec(Ndim), Gxc(M,M)
 
-   integer :: i , j, Nvirt
-   real*8, dimension(:,:), allocatable :: TundAO, Xmat, Gxc, TundMO
    real*8, dimension(:,:), allocatable :: FX, FT
    real*8, dimension(:,:,:), allocatable :: F2e, PA
    real*8, dimension(:,:), allocatable :: FXAB, FXIJ, FTIA, GXCIA
    real*8, dimension(:), allocatable :: Rvec
-
-   Nvirt = M - NCO
 
    print*, ""
    print*,"======================================="
@@ -24,21 +21,8 @@ use lrdata, only: cbas, root, fitLR
    write(*,"(1X,A,1X,I2)") "FORM RELAXED DENSITY MATRIX FOR EXCITED STATE:", root
    write(*,*) ""
 
-!  FORM UNRELAXED DIFFERENCE DENSITY MATRIX
-   allocate(TundMO(M,M))
-   call UnDiffDens(X,TundMO,NCO,Nvirt,M,Ndim)
-
-!  CHANGE BASIS T MO -> AO
-   allocate(TundAO(M,M))
-   call matMOtomatAO(TundMO,TundAO,C,M,1,.false.)
-   deallocate(TundMO)
-
-!  FORM TRANSITION DENSITY MATRIX
-   allocate(Xmat(M,M)); Xmat = 0.0D0
-   call XmatForm(X,C,Xmat,Ndim,NCO,Nvirt,M)
-
 !  CALCULATE THIRD DERIVATIVE FOCK
-   allocate(Gxc(M,M)); Gxc = 0.0D0
+   Gxc = 0.0D0
    call g2g_calculateg(Xmat,Gxc,3)
 
 !  CALCULATE SECOND DERIVATIVE FOCK
@@ -71,14 +55,14 @@ use lrdata, only: cbas, root, fitLR
    allocate(FXAB(Nvirt,Nvirt),FXIJ(NCO,NCO))
    allocate(FTIA(NCO,Nvirt),GXCIA(NCO,Nvirt))
    call ChangeBasisF(FX,FT,Gxc,C,FXAB,FXIJ,FTIA,GXCIA,M,Nvirt,NCO)
-   deallocate(FX,FT,Gxc)
+   deallocate(FX,FT)
 
 !  CALCULATE VECTOR R (A * X = R)
    allocate(Rvec(Ndim))
-   call RCalculate(FXAB,FXIJ,FTIA,GXCIA,X,Rvec,NCO,Nvirt,Ndim)
+   call RCalculate(FXAB,FXIJ,FTIA,GXCIA,X,Rvec,Qvec,NCO,Nvirt,Ndim)
 
 !  SOLVE EQUATION AX=R WITH PCG METHOD     
-   call PCG_solve(Rvec,TundAO,Xmat,C,Ene,M,NCO,Nvirt,Ndim) ! X temporal por ahora
+   call PCG_solve(Rvec,C,Ene,Zvec,M,NCO,Nvirt,Ndim)
 
-   deallocate(TundAO,FXAB,FXIJ,FTIA,GXCIA,Rvec,Xmat)
+   deallocate(FXAB,FXIJ,FTIA,GXCIA,Rvec)
 end subroutine Zvector

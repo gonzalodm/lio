@@ -8,8 +8,7 @@ use garcha_mod, only: RMM, r, d, ntatom, natom, &
    real*8, intent(inout) :: We(M,M)
    real*8, intent(inout) :: for(natom,3)
 
-   integer :: i, j, ind
-   integer :: MM, M15, MMd
+   integer :: i, j, ind, MM, M15, MMd
    real*8, dimension(:), allocatable :: Wtot
 
    ! Pointers to W from excited states. This is -W

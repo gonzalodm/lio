@@ -1,15 +1,15 @@
-subroutine PCG_solve(bvec,Rho_urel,Xmat,Coef,E,M,NCO,Nvirt,Ndim)
+subroutine PCG_solve(bvec,Coef,E,X,M,NCO,Nvirt,Ndim)
 use lrdata, only: cbas, fitLR
    implicit none
 
-   integer, intent(in) :: NCO, Nvirt, Ndim, M
-   real*8, intent(in) :: bvec(Ndim), E(M), Coef(M,M), Rho_urel(M,M)
-   real*8, intent(in) :: Xmat(M,M)
+   integer, intent(in) :: M, NCO, Nvirt, Ndim
+   real*8, intent(in) :: bvec(Ndim), E(M), Coef(M,M)
+   real*8, intent(inout) :: X(Ndim)
 
-   integer :: i, j, iter, maxIter
+   integer :: iter, maxIter
    real*8 :: beta, alpha
    logical :: conv = .false.
-   real*8, dimension(:), allocatable :: R, Z, Pk, Mprec, ApIA, X
+   real*8, dimension(:), allocatable :: R, Pk, Mprec, ApIA
    real*8, dimension(:,:), allocatable :: Pmat, F2e, Fxc, Ftot, CopyP
 
 !  START PRECONDITINED CONJUGATE GRADIENT
@@ -27,11 +27,13 @@ use lrdata, only: cbas, fitLR
    call Pbeta_calc(R,Mprec,beta,Pk,Ndim)
 
    allocate(Pmat(M,M),F2e(M,M),Fxc(M,M),Ftot(M,M))
-   allocate(ApIA(Ndim),X(Ndim),CopyP(M,M)); X = 0.0D0
+   allocate(ApIA(Ndim),CopyP(M,M))
+   X = 0.0D0
 
    write(*,*) ""
    write(*,"(1X,A)") "Start PCG loop"
    write(*,*) ""
+
    do iter=1,maxIter
 
 !  CONVERT TRIAL VECTORS TO AO BASIS
@@ -77,8 +79,5 @@ use lrdata, only: cbas, fitLR
 
    enddo ! ENDDO LOOP PCG
 
-!  FORM RELAXED DENSITY OF EXCITED STATE
-   call RelaxedDensity(X,Rho_urel,Xmat,Coef,M,NCO,Ndim)
-
-   deallocate(R,Mprec,Pk,Pmat,F2e,Fxc,Ftot,ApIA,X,CopyP)
+   deallocate(R,Mprec,Pk,Pmat,F2e,Fxc,Ftot,ApIA,CopyP)
 end subroutine PCG_solve

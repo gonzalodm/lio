@@ -4,6 +4,10 @@ module excitedsubs
 contains
 !
 !
+#include "ExcProp.f90"
+#include "fcaApp.f90"
+#include "GenerateDensities.f90"
+
 #include "addInt.f90"
 #include "Alpha_calc.f90"
 #include "Ap_calculate.f90"
@@ -53,7 +57,5 @@ contains
 #include "varcoef_calc.f90"
 #include "int2GExc.f90"
 #include "int3GExc.f90"
-
-
 
 end module excitedsubs

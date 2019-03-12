@@ -1,19 +1,15 @@
-subroutine linear_response(MatCoef,VecEne)
-use lrdata, only: Nvirt,dim,nstates,eigenval,&
-                   eigenvec,cbas,root,FCA,nfo,nfv,&
-                   NCOlr, Mlr, fitLR, EneSCF
-use garcha_mod, only: NCO, M, c, a
-
+subroutine linear_response(MatCoef,VecEne,Xlr,deltaE,M,Nvirt,NCO,dim)
+use lrdata, only: nstates, cbas, root, fitLR
    implicit none
 
-   real*8, intent(in) :: MatCoef(M,M)
-   real*8, intent(in) :: VecEne(M)
+   integer, intent(in) :: M, Nvirt, NCO, dim
+   real*8, intent(in) :: MatCoef(M,M), VecEne(M)
+   real*8, intent(out) :: deltaE
+   real*8, intent(out) :: Xlr(dim)
 
 !  COUNTERS
    integer :: i, j
-!  IF FCA IS USED
-   real*8, dimension(:), allocatable :: Ene_LR
-   real*8, dimension(:,:), allocatable :: Coef_LR
+
 !  DAVIDSON OPTIONS
    integer :: maxIter, iter ! ITERATION
    integer :: vec_dim, iv, first_vec, newvec ! VECTOR INDEXES
@@ -26,38 +22,6 @@ use garcha_mod, only: NCO, M, c, a
    logical :: conv = .false.
 
    call g2g_timer_start('LINEAR RESPONSE')
-
-! INITIALIZATION OF VARIABLES IF FCA IS USED
-   if (FCA .eqv. .true.) then
-   print*,"Using Frozen Core Approximation"
-   print*,"nfo, nfv", nfo, nfv
-      Nvirt = M - NCO - nfv
-      NCOlr = NCO - nfo
-      Mlr = M - nfo - nfv
-      dim = Nvirt * NCOlr
-      allocate(Coef_LR(M,Mlr),Ene_LR(Mlr))
-      do i=1, NCOlr
-        Coef_LR(:,i) = MatCoef(:,i+nfo)
-        Ene_LR(i) = VecEne(i+nfo)
-      enddo
-      do i=1, Nvirt
-         Coef_LR(:,NCOlr+i) = MatCoef(:,i+NCO)
-         Ene_LR(NCOlr+i) = VecEne(i+NCO)
-      enddo
-   else
-      nfo = 0
-      Mlr = M
-      NCOlr = NCO
-      Nvirt = M - NCO
-      dim = Nvirt * NCO
-      allocate(Coef_LR(M,M),Ene_LR(M),EneSCF(M))
-      Coef_LR = MatCoef
-      Ene_LR = VecEne
-      EneSCF = VecEne ! para forces
-   endif
-
-!  INITIALIZATION OF MATRIX NEEDED FOR CHANGE BASIS
-   call basis_initLR(Coef_LR,M,NCO,Nvirt)
 
    print*, ""
    print*,"======================================="
@@ -75,9 +39,6 @@ use garcha_mod, only: NCO, M, c, a
 
 !  DAVIDSON INITIALIZATION
    allocate(val_old(nstates),Osc(nstates))
-
-!  For forces
-   allocate(eigenval(nstates))
 
    val_old = 1.0D0
    vec_dim = 4 * nstates
@@ -121,15 +82,14 @@ use garcha_mod, only: NCO, M, c, a
       write(*,"(1X,A,1X,I4)") "VECTORS INSIDE:",vec_dim
 
 !    CHANGE VECTORS TO MATRIX IN OM
-     if(allocated(tmatMO)) deallocate(tmatMO)
-        allocate(tmatMO(M,M,vec_dim))
+     allocate(tmatMO(M,M,vec_dim))
      call vecMOtomatMO(tvecMO,tmatMO,M,NCO,Nvirt, &
                        Subdim,vec_dim,first_vec,dim)
 
 !    CHANGE BASIS MO -> AO FOR EACH VECTOR
      if(allocated(tmatAO)) deallocate(tmatAO)
         allocate(tmatAO(M,M,vec_dim))
-     call matMOtomatAO(tmatMO,tmatAO,Coef_LR,M,vec_dim,.true.)
+     call matMOtomatAO(tmatMO,tmatAO,MatCoef,M,vec_dim,.true.)
 
 !    CALCULATE 2E INTEGRALS
      allocate(FM2(M,M,vec_dim)); FM2 = 0.0D0
@@ -146,11 +106,12 @@ use garcha_mod, only: NCO, M, c, a
      allocate(FXC(M,M,vec_dim))
      call g2g_timer_start('Dft integrals of vectors')
      do iv=1,vec_dim ! LOOPS VECTORS INSIDE OF CYCLE
-        call formred(tmatMO,Coef_LR,vmatAO,M,dim,vec_dim,iv) ! FORM T * C**T
-        call g2g_calculatedft(vmatAO,Coef_LR,Fv,NCO)
+        call formred(tmatMO,MatCoef,vmatAO,M,dim,vec_dim,iv) ! FORM T * C**T
+        call g2g_calculatedft(vmatAO,MatCoef,Fv,NCO)
         FXC(:,:,iv) = Fv
         Fv = 0.0D0
      enddo ! END LOOPS VECTORS
+     deallocate(tmatMO)
      call g2g_timer_stop('Dft integrals of vectors')
 
 !    NOW FM2 CONTAIN THE 2e- AND DFT PARTS
@@ -158,12 +119,12 @@ use garcha_mod, only: NCO, M, c, a
      deallocate(FXC)
 
 !    WE OBTAIN AX (NDIM x NVEC)
-     call MtoIANV(FM2,Coef_LR,AX,M,NCO,dim, &
+     call MtoIANV(FM2,MatCoef,AX,M,NCO,dim, &
                   Subdim,vec_dim,first_vec)
      deallocate(FM2)
 
 !    ADD (Ea - Ei)*Xia TO AX
-     call addInt(AX,Ene_LR,tvecMO,dim,M, &
+     call addInt(AX,VecEne,tvecMO,dim,M, &
                  Subdim,NCO,vec_dim,first_vec)
 
 !    WE OBTAIN SUBSPACE MATRIX
@@ -181,8 +142,8 @@ use garcha_mod, only: NCO, M, c, a
      call RitzObtain(tvecMO,eigvec,RitzVec,dim,Subdim,nstates)
 
      if (maxIter == 1) then
-       call OscStr(RitzVec,eigval,Coef_LR,Osc,M,NCO,Nvirt,dim,nstates)
-       call PrintResults(RitzVec,eigval,Osc,dim,nstates)
+       call OscStr(RitzVec,eigval,MatCoef,Osc,M,NCO,Nvirt,dim,nstates)
+       call PrintResults(RitzVec,eigval,Osc,dim,nstates,M,NCO)
        exit
      endif
 
@@ -192,14 +153,14 @@ use garcha_mod, only: NCO, M, c, a
 
 !    CHECK CONVERGENCE AND ADD NEW VECTORS
      conv = .false. ; newvec = 0
-     call new_vectors(ResMat,eigval,Ene_LR,tvecMO,val_old, &
+     call new_vectors(ResMat,eigval,VecEne,tvecMO,val_old, &
                       dim,Subdim,nstates,M,NCO,newvec,conv)
 
      if(conv .eqv. .true.) then
        write(*,*) ""
        write(*,"(1X,A,I2,1X,A)") "CONVERGED IN:",iter,"ITERATIONS"
-       call OscStr(RitzVec,eigval,Coef_LR,Osc,M,NCO,Nvirt,dim,nstates)
-       call PrintResults(RitzVec,eigval,Osc,dim,nstates)
+       call OscStr(RitzVec,eigval,MatCoef,Osc,M,NCO,Nvirt,dim,nstates)
+       call PrintResults(RitzVec,eigval,Osc,dim,nstates,M,NCO)
        exit
      else
 !      ACTUALIZATION OF VECTORS INDEXES
@@ -209,20 +170,19 @@ use garcha_mod, only: NCO, M, c, a
      endif
    enddo !END DAVIDSON
 
-!  Copy energies for forces
-   do i=1,nstates
-      eigenval(i) = eigval(i)
-   enddo
-
    deallocate(vmatAO,Fv,ResMat,val_old,Osc,eigvec,&
-              eigval,AX,tvecMO,tmatAO)
+              AX,tvecMO,tmatAO)
 
    call g2g_timer_stop('LINEAR RESPONSE')
 
+   ! Save outputs
    if (root > 0 ) then
-     call Zvector(Coef_LR,Ene_LR,RitzVec(:,root),NCO,M,dim)
+     Xlr = RitzVec(:,root)  
+     deltaE = eigval(root)
+   else
+     Xlr = 0.0D0
+     deltaE = 0.0D0
    endif
-   
-   deallocate(RitzVec,Coef_LR,Ene_LR)
-   call basis_deinitLR()
+
+   deallocate(RitzVec,eigval)
 end subroutine linear_response

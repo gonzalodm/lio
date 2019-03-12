@@ -1,8 +1,8 @@
-subroutine PrintResults(vec,val,O,N,nstat)
-use lrdata, only: Mlr, NCOlr, nfo
+subroutine PrintResults(vec,val,O,N,nstat,Mlr,NCOlr)
+use lrdata, only: nfo
    implicit none
 
-   integer, intent(in) :: N, nstat
+   integer, intent(in) :: N, nstat, Mlr, NCOlr
    real*8, intent(in) :: vec(N,nstat),val(nstat),O(nstat)
 
    integer :: i,j,from,to

@@ -71,7 +71,7 @@ subroutine SCF(E)
                             write_final_convergence
    use fileio_data  , only: verbose
    use lrdata, only: lresp
-   use excitedsubs, only: linear_response
+   use excitedsubs, only: ExcProp
    use converger_ls , only: Rho_LS, changed_to_LS, P_conver, P_linearsearch_init
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
@@ -1047,7 +1047,7 @@ subroutine SCF(E)
      if (OPEN) then
        print*, "LINEAR RESPONSE ONLY WORKS WITH CLOSED SHELL"
      else
-       call linear_response(morb_coefat,morb_energy)
+       call ExcProp(morb_coefat,morb_energy)
      endif
    endif
 

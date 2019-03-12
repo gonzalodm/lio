@@ -1,12 +1,11 @@
-subroutine Wcalculate(Zvec,Dif,C,Wmat,Ndim,M)
-use lrdata, only: Qvec, GxcAO, Vlr, cbas, Cocc, Cocc_trans,&
-                  eigenval, root, EneSCF, Coef_trans
-! TODO: dejar de leer el modulo con Qvec, GxcAO, Vlr,EneSCF,eigenval
-use garcha_mod, only: NCO
+subroutine Wcalculate(Zvec,Dif,Qvec,GxcAO,Vlr,C,dE,EneSCF,Wmat,Ndim,M,NCO)
+use lrdata, only: cbas, Cocc, Cocc_trans,Coef_trans
    implicit none
 
-   integer, intent(in) :: Ndim, M
-   real*8, intent(in) :: Zvec(Ndim), Dif(M,M), C(M,M)
+   integer, intent(in) :: Ndim, M, NCO
+   real*8, intent(in) :: Zvec(Ndim), Dif(M,M), Qvec(Ndim)
+   real*8, intent(in) :: GxcAO(M,M), Vlr(Ndim), C(M,M), EneSCF(M)
+   real*8, intent(in) :: dE
    real*8, intent(inout) :: Wmat(M,M)
 
    integer :: i, j, k
@@ -49,14 +48,13 @@ use garcha_mod, only: NCO
    do j=1,i
       temp1 = 0.0D0
       temp2 = 0.0D0
-      print*,"guarda",NCOc-i,NCOc-j,i,j
       do k=1,Nvirt
          pos1 = (i-1)*Nvirt+k !ia
          pos2 = (j-1)*Nvirt+k !ja
          temp1 = temp1 + Vlr(pos1)*Vlr(pos2)*2.0D0
          temp2 = temp2 + EneSCF(NCO+k)*(Vlr(pos1)*Vlr(pos2)*2.0D0)
       enddo
-      Wmat(NCOc-i,NCOc-j) = eigenval(root) * temp1 - temp2 &
+      Wmat(NCOc-i,NCOc-j) = dE * temp1 - temp2 &
                   + HXIJ(NCOc-i,NCOc-j) + 2.0D0 * GXCIJ(NCOc-i,NCOc-j) 
       Wmat(NCOc-j,NCOc-i) = Wmat(NCOc-i,NCOc-j)
    enddo
@@ -75,7 +73,7 @@ use garcha_mod, only: NCO
          temp1 = temp1 + Vlr(pos1)*Vlr(pos2)*2.0D0
          temp2 = temp2 + EneSCF(NCOc-k)*(Vlr(pos1)*Vlr(pos2)*2.0D0)
       enddo
-      Wmat(NCO+i,NCO+j) = eigenval(root)*temp1 + temp2
+      Wmat(NCO+i,NCO+j) = dE * temp1 + temp2
       Wmat(NCO+j,NCO+i) = Wmat(NCO+i,NCO+j)
    enddo
    enddo

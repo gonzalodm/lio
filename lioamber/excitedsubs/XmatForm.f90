@@ -7,16 +7,13 @@ use lrdata, only: Coef_trans
    real*8, intent(out) :: Mat(M,M)
 
    integer :: NCOc, row, col, pos
-   real*8 :: raiz2
    real*8, dimension(:,:), allocatable ::SCR
 
    NCOc = NCO + 1
-   raiz2 = 1.0D0 / dsqrt(2.0D0)
-
    do row=1,NCO
    do col=1,Nvirt
      pos = (row-1) * Nvirt + col
-     Mat(NCOc-row,NCO+col) = Vec(pos) * raiz2
+     Mat(NCOc-row,NCO+col) = Vec(pos)
    enddo
    enddo
 

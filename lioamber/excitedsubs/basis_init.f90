@@ -1,8 +1,8 @@
 subroutine basis_initLR(Coef,M,NCO,Nvirt)
 !  This subroutine initializes the matrix needed for 
-!  the change of basis in linear response and CPKS calculations.
-use lrdata, only: Coef_trans, Cocc, &
-                        Cocc_trans, Cvir, Cvir_trans
+!  the change basis in LR, Zvector, Forces calculations.
+use lrdata, only: Coef_trans, Cocc, Cocc_trans, &
+                  Cvir, Cvir_trans
    implicit none
    integer, intent(in) :: M, NCO, Nvirt
    real*8, intent(in) :: Coef(M,M)
