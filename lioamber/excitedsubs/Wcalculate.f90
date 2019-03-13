@@ -19,7 +19,7 @@ use lrdata, only: cbas, Cocc, Cocc_trans, Coef_trans, fitLR
    allocate(F2e(M,M)); F2e = 0.0D0
 
    if (.not. fitLR) then
-      call g2g_calculate2e(Dif,cbas,1,F2e,0)
+      call g2g_calculate2e(Dif,cbas,1,F2e,1)
       F2e = 2.0D0 * F2e
    else 
       allocate(Dcopy(M,M)); Dcopy = Dif
