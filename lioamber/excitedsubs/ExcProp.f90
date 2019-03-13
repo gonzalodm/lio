@@ -1,4 +1,4 @@
-subroutine ExcProp(C_scf,E_scf)
+subroutine ExcProp(C_scf,E_scf,E_total)
 use lrdata, only: root, forEXC, nstates, excited_forces
 use garcha_mod, only: M, NCO, natom, doing_ehrenfest
 use td_data, only: timedep
@@ -6,6 +6,7 @@ use maskrmm, only: rmmput_dens
    implicit none
 
    real*8, allocatable, intent(inout) :: C_scf(:,:), E_scf(:)
+   real*8, intent(inout) :: E_total
 
    integer :: NCOlr, Mlr, Nvirt, Ndim
    real*8 :: deltaE
@@ -24,6 +25,9 @@ use maskrmm, only: rmmput_dens
    Xlr = 0.0D0
    call linear_response(C_scf,E_scf,Xlr,deltaE,M,Nvirt,NCO,Ndim)
    Xlr = Xlr / dsqrt(2.0D0) ! We normalize to 1/2
+   
+   ! QM Energy total: Escf + wexc
+   E_total = E_total + deltaE
 
    ! Z-Vector Method
    if ( root > 0 ) then
@@ -59,7 +63,7 @@ use maskrmm, only: rmmput_dens
       deallocate(Punr)
 
       ! Put Excited state density in RMM
-      excited_forces = .true.
+      excited_forces = .false.
       if ( (timedep == 1 .or. doing_ehrenfest) &
             .and. (.not. excited_forces) ) then
          print*, "--- Put Excited State Density Matrix in RMM ---"

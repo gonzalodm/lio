@@ -1047,7 +1047,7 @@ subroutine SCF(E)
      if (OPEN) then
        print*, "LINEAR RESPONSE ONLY WORKS WITH CLOSED SHELL"
      else
-       call ExcProp(morb_coefat,morb_energy)
+       call ExcProp(morb_coefat,morb_energy,E)
      endif
    endif
 
