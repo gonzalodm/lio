@@ -1,14 +1,11 @@
 subroutine linear_response(MatCoef,VecEne,Xlr,deltaE,M,Nvirt,NCO,dim)
-use lrdata, only: nstates, cbas, root, fitLR
+use lrdata, only: nstates, cbas, root, fitLR, Coef_trans
    implicit none
 
    integer, intent(in) :: M, Nvirt, NCO, dim
    real*8, intent(in) :: MatCoef(M,M), VecEne(M)
    real*8, intent(out) :: deltaE
    real*8, intent(out) :: Xlr(dim)
-
-!  COUNTERS
-   integer :: i, j
 
 !  DAVIDSON OPTIONS
    integer :: maxIter, iter ! ITERATION
@@ -35,7 +32,7 @@ use lrdata, only: nstates, cbas, root, fitLR
 !  CHECK INPUT VARIABLES
    if (nstates > dim) then
       print*, "NUMBER OF EXCITED STATES THAT YOU WANT IS BIGGER &
-               THAN DIMENSION MATRIX"
+               & THAN DIMENSION MATRIX"
       nstates = dim
       print*, "WE CALCULATED", nstates
    endif
@@ -109,7 +106,7 @@ use lrdata, only: nstates, cbas, root, fitLR
      allocate(FXC(M,M,vec_dim))
      call g2g_timer_start('Dft integrals of vectors')
      do iv=1,vec_dim ! LOOPS VECTORS INSIDE OF CYCLE
-        call formred(tmatMO,MatCoef,vmatAO,M,dim,vec_dim,iv) ! FORM T * C**T
+        call multlr(tmatMO(:,:,iv),Coef_trans,vmatAO,M,M,M,1.0D0,0.0D0)
         call g2g_calculatedft(vmatAO,MatCoef,Fv,NCO)
         FXC(:,:,iv) = Fv
         Fv = 0.0D0

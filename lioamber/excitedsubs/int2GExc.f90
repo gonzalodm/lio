@@ -1,6 +1,6 @@
 subroutine int2GExc(afE,afD,afX,f,natom,Md)
 use liosubs_math , only: FUNCT
-use garcha_mod   , only: M, NORM, nshelld, ad, Nucd, ncontd, cd, r, d
+use garcha_mod   , only: NORM, nshelld, ad, Nucd, ncontd, cd, r, d
 use constants_mod, only: pi5
 
    implicit none

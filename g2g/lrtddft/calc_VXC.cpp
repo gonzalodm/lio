@@ -47,23 +47,24 @@ void calc_VXC(double* dens, double* diff,
    //GDUMAG2=EC(IIPT,IGC)
    GDUMAG2=vsigma[4];
 
-   double GDUMB,GDUMBG1,GDUMBG2;
+   //double GDUMB,GDUMBG1,GDUMBG2;
+   //double GDUMBG1,GDUMBG2; no use
    //GDUMB=EX(IIPT,KRB)+EC(IIPT,IRB)
-   GDUMB=vrho[1]+vrho[3];
+   //GDUMB=vrho[1]+vrho[3];
    //GDUMBG1=TWO*EX(IIPT,KGB)+TWO*EC(IIPT,IGB)
-   GDUMBG1=2.0f*(vsigma[1]+vsigma[3]);
+   //GDUMBG1=2.0f*(vsigma[1]+vsigma[3]); no use
    //GDUMBG2=EC(IIPT,IGC)
-   GDUMBG2=vsigma[4];
+   //GDUMBG2=vsigma[4]; no uso
 
 // CONTRACTION
    double GDUMAX,GDUMAY,GDUMAZ;
-   double GDUMBX,GDUMBY,GDUMBZ;
+   //double GDUMBX,GDUMBY,GDUMBZ;
    GDUMAX=GDUMAG1*dens[1]+GDUMAG2*dens[1];
    GDUMAY=GDUMAG1*dens[2]+GDUMAG2*dens[2];
    GDUMAZ=GDUMAG1*dens[3]+GDUMAG2*dens[3];
-   GDUMBX=GDUMBG1*dens[1]+GDUMBG2*dens[1];
-   GDUMBY=GDUMBG1*dens[2]+GDUMBG2*dens[2];
-   GDUMBZ=GDUMBG1*dens[3]+GDUMBG2*dens[3];
+   //GDUMBX=GDUMBG1*dens[1]+GDUMBG2*dens[1];
+   //GDUMBY=GDUMBG1*dens[2]+GDUMBG2*dens[2];
+   //GDUMBZ=GDUMBG1*dens[3]+GDUMBG2*dens[3];
 
 /*
    cout << "GDUMAX " << GDUMAX << endl;
@@ -77,8 +78,9 @@ void calc_VXC(double* dens, double* diff,
 */
 
 // V NON CORE CONTRIBUTION
-   double DUMNV1, DUMNV2;
-   double DUMGRV1,DUMGRV2,DUMGRV3,DUMGRV4;
+   double DUMNV1; //, DUMNV2;no uso
+   //double DUMGRV1,DUMGRV2,DUMGRV3,DUMGRV4; no uso DUMGRV2
+   double DUMGRV1,DUMGRV3,DUMGRV4;
    //DUMNV1=EX(IIPT,KRA)+EC(IIPT,IRA)
    DUMNV1=vrho[0]+vrho[2];
    //DUMGRV1=TWO*(EX(IIPT,KGA)+EC(IIPT,IGA))
@@ -86,9 +88,9 @@ void calc_VXC(double* dens, double* diff,
    //DUMGRV3=EC(IIPT,IGC)
    DUMGRV3=vsigma[4];
    //DUMNV2=EX(IIPT,KRB)+EC(IIPT,IRB)
-   DUMNV2=vrho[1]+vrho[3];
+   //DUMNV2=vrho[1]+vrho[3]; no uso
    //DUMGRV2=TWO*(EX(IIPT,KGB)+EC(IIPT,IGB))
-   DUMGRV2=2.0f*(vsigma[1]+vsigma[3]);
+   //DUMGRV2=2.0f*(vsigma[1]+vsigma[3]); no uso
    //DUMGRV4=EC(IIPT,IGC)
    DUMGRV4=vsigma[4];
 
@@ -114,6 +116,8 @@ void calc_VXC(double* dens, double* diff,
    // todo bien
 */
 
+/*
+   no las uso nunca
    double VNCDOMB,VNCDOMBX,VNCDOMBY,VNCDOMBZ;
    double VNCDUMBX,VNCDUMBY,VNCDUMBZ;
    VNCDOMB=DUMNV2;
@@ -123,6 +127,7 @@ void calc_VXC(double* dens, double* diff,
    VNCDUMBX=DUMGRV2*DXV[1]+DUMGRV3*DXV[0];
    VNCDUMBY=DUMGRV2*DYV[1]+DUMGRV3*DYV[0];
    VNCDUMBZ=DUMGRV2*DZV[1]+DUMGRV3*DZV[0];
+*/
 
 /*
    cout << "VNCDOMB " << VNCDOMB << endl;
@@ -249,15 +254,18 @@ void calc_VXC(double* dens, double* diff,
 
 // CONTRACTION OF VC
    double VCDUMA,VCDUMAX,VCDUMAY,VCDUMAZ;
-   double VCDUMB,VCDUMBX,VCDUMBY,VCDUMBZ;
+   //double VCDUMB,VCDUMBX,VCDUMBY,VCDUMBZ; no lo uso
    VCDUMA=DUMA;
    VCDUMAX=DUMAG1*dens[1]+DUMAG2*dens[1];
    VCDUMAY=DUMAG1*dens[2]+DUMAG2*dens[2];
    VCDUMAZ=DUMAG1*dens[3]+DUMAG2*dens[3];
+/*
+   no uso 
    VCDUMB=DUMB;
    VCDUMBX=DUMBG1*dens[1]+DUMBG2*dens[1];
    VCDUMBY=DUMBG1*dens[2]+DUMBG2*dens[2];
    VCDUMBZ=DUMBG1*dens[3]+DUMBG2*dens[3];
+*/
 
 /*
    cout << "VCDUMA  " << VCDUMA << endl;

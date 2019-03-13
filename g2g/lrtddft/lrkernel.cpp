@@ -266,6 +266,7 @@ void PointGroupCPU<scalar_type>::get_coef_input(HostMatrix<scalar_type>&
         }
      }
   }
+  std::vector<int>().swap(row);
   for(int wx=0; wx<i; wx++)
         vecnum[wx] = numeros[wx];
 }

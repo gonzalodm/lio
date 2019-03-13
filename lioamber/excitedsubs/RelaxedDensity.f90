@@ -7,7 +7,7 @@ use garcha_mod, only: RMM
    real*8, intent(in) :: Z(N), C(M,M), Rho_urel(M,M)
    real*8, intent(out) :: Rho_exc(M,M), Rel_diff(M,M)
 
-   integer :: i, j, NCOc, pos, M2
+   integer :: i, j, NCOc, pos
    real*8, dimension(:,:), allocatable :: Zmo, Zao, Rho_fund
 
 !  EXTRACT RHO FUND FROM RMM

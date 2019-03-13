@@ -253,6 +253,8 @@ void calc_FXC(double* dens, double* trad,
    // todo bien
 */
 
+/*
+   no uso nunca
    double FNCDOMB,FNCDOMBX,FNCDOMBY,FNCDOMBZ;
    FNCDOMB=DUMNV2;
    FNCDOMBX=DUMGRV2*dens[1]+DUMGRV4*dens[1]+
@@ -261,11 +263,15 @@ void calc_FXC(double* dens, double* trad,
             DUMXX2*DYV[1]+DUMXX3*DYV[0];
    FNCDOMBZ=DUMGRV2*dens[3]+DUMGRV4*dens[3]+
             DUMXX2*DZV[1]+DUMXX3*DZV[0];
+*/
 
+/*
+   no uso nunca
    double FNCDUMBX,FNCDUMBY,FNCDUMBZ;
    FNCDUMBX=DUMGRV2*DXV[1]+DUMGRV3*DXV[0];
    FNCDUMBY=DUMGRV2*DYV[1]+DUMGRV3*DYV[0];
    FNCDUMBZ=DUMGRV2*DZV[1]+DUMGRV3*DZV[0];
+*/
 
 /*
    cout << "FNCDOMB " << FNCDOMB << endl;
@@ -981,6 +987,8 @@ void calc_FXC(double* dens, double* trad,
    FCDUMAY=FCDUMAG1*dens[2]+FCDUMAG2*dens[2];
    FCDUMAZ=FCDUMAG1*dens[3]+FCDUMAG2*dens[3];
 
+/*
+   no uso nada de esto
    double FCDUMB,FCDUMBG1,FCDUMBG2,FCDUMBX,FCDUMBY,FCDUMBZ;
    FCDUMB=XDUMB+CDUMB;
    FCDUMBG1=XDUMBG+CDUMBG1;
@@ -988,6 +996,7 @@ void calc_FXC(double* dens, double* trad,
    FCDUMBX=FCDUMBG1*dens[1]+FCDUMBG2*dens[1];
    FCDUMBY=FCDUMBG1*dens[2]+FCDUMBG2*dens[2];
    FCDUMBZ=FCDUMBG1*dens[3]+FCDUMBG2*dens[3];
+*/
 // END F CORE
 
 // DENSITY FACTOR

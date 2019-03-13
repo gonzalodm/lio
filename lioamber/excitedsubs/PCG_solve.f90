@@ -56,7 +56,7 @@ use lrdata, only: cbas, fitLR
 !  OBTAIN FOCK TOTAL AND ADD TERM (Ea-Ei)Pk AND
 !  CHANGE BASIS AO -> MO
    call total_fock(F2e,Fxc,Ftot,M)
-   call Ap_calculate(Ftot,Pk,Coef,E,ApIA,M,NCO,Nvirt,Ndim)
+   call Ap_calculate(Ftot,Pk,E,ApIA,M,NCO,Nvirt,Ndim)
 
 !  CALCULATE ALPHA
    call Alpha_calc(Pk,ApIA,alpha,Ndim)

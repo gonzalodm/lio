@@ -8,7 +8,6 @@ use faint_cpu, only: int3lu
    real*8, intent(out) :: Fock(M,M,numvec)
 
    integer :: MM, MMd, M7, M9, ist, i, j
-   integer :: k ! eliminar
    real*8, dimension(:), allocatable :: Vec, Fock_vec
 
    !This variables is not refrence here

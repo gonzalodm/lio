@@ -6,7 +6,6 @@ subroutine OscStr(X,Ene,Coef,OsSt,M,NCO,Nvirt,Ndim,Nstat)
    real*8, intent(in) :: Coef(M,M)
    real*8, intent(out) :: OsSt(Nstat)
 
-   integer :: i, j
    real*8, dimension(:,:), allocatable :: Tdip
    real*8, dimension(:,:,:), allocatable :: TdensAO,TdensMO
 

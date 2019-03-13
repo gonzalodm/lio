@@ -54,7 +54,7 @@ use lrdata, only: cbas, root, fitLR
 !  CHANGE BASIS OF ALL FOCK TYPE MATRIX
    allocate(FXAB(Nvirt,Nvirt),FXIJ(NCO,NCO))
    allocate(FTIA(NCO,Nvirt),GXCIA(NCO,Nvirt))
-   call ChangeBasisF(FX,FT,Gxc,C,FXAB,FXIJ,FTIA,GXCIA,M,Nvirt,NCO)
+   call ChangeBasisF(FX,FT,Gxc,FXAB,FXIJ,FTIA,GXCIA,M,Nvirt,NCO)
    deallocate(FX,FT)
 
 !  CALCULATE VECTOR R (A * X = R)

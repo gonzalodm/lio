@@ -18,7 +18,6 @@ contains
 #include "ChangeBasisF.f90"
 #include "diagonH.f90"
 #include "error.f90"
-#include "formred.f90"
 #include "initvec.f90"
 #include "matMOtomatAO.f90" 
 

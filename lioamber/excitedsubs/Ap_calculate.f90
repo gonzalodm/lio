@@ -1,10 +1,10 @@
-subroutine Ap_calculate(Fp,P,C,E,Ap,M,NCO,Nvirt,Ndim)
+subroutine Ap_calculate(Fp,P,E,Ap,M,NCO,Nvirt,Ndim)
 use lrdata, only: Cocc_trans, Cvir
 
    implicit none
 
    integer, intent(in) :: M, NCO, Nvirt, Ndim
-   real*8, intent(in) :: Fp(M,M), C(M,M), E(M), P(Ndim)
+   real*8, intent(in) :: Fp(M,M), E(M), P(Ndim)
    real*8, intent(out) :: Ap(Ndim)
 
    integer :: i, j, NCOc, pos

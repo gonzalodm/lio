@@ -12,7 +12,6 @@ included += calc2eFITT.f90
 included += ChangeBasisF.f90
 included += diagonH.f90
 included += error.f90
-included += formred.f90
 included += initvec.f90
 included += matMOtomatAO.f90
 included += MtoIANV.f90

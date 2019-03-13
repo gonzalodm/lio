@@ -1,14 +1,13 @@
-subroutine ChangeBasisF(FX,FT,Gxc,C,FXAB,FXIJ,FTIA,GXCIA,M,Nvirt,NCO)
+subroutine ChangeBasisF(FX,FT,Gxc,FXAB,FXIJ,FTIA,GXCIA,M,Nvirt,NCO)
 use lrdata, only: Cocc, Cocc_trans, Cvir, Cvir_trans
 
    implicit none
 
    integer, intent(in) :: M, Nvirt, NCO
-   real*8, intent(in) :: C(M,M), Gxc(M,M), FX(M,M), FT(M,M)
+   real*8, intent(in) :: Gxc(M,M), FX(M,M), FT(M,M)
    real*8, intent(out) :: FXAB(Nvirt,Nvirt), FXIJ(NCO,NCO)
    real*8, intent(out) :: FTIA(NCO,Nvirt), GXCIA(NCO,Nvirt)
 
-   integer :: i, j
    real*8, dimension(:,:), allocatable :: scratch
 
 !  FORM FX IN BASIS VIRT X VIRT

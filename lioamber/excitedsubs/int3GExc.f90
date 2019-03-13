@@ -23,9 +23,8 @@ use constants_mod, only: pi52
 
    ! ns, np and nd are the number of basis functions in each shell, while
    ! nsd, npd and ndd are used for the auxiliary basis.
-   ! igpu checks whether the gradients are done in GPU or CPU.
    ! rho_ind and af_ind are vector-matrix indeces.
-   integer :: ns, nsd, np, npd, nd, ndd, rho_ind, af_ind, igpu
+   integer :: ns, nsd, np, npd, nd, ndd, rho_ind, af_ind
 
    ! The following thousand variables store temporary results.
    double precision :: s0pk, pss, psf, s2dpm, s2dkl, s1pkpl, s1pk, s1ds, s1dpm,&
@@ -34,7 +33,7 @@ use constants_mod, only: pi52
                        sp3js, spd, spjpk, spjs, spk, spp, sps, ss0d, ss0p,     &
                        ss0pj, ss1d, ss1p, ss1pj, ss1pk, ss1s, ss2p, ss2pj,     &
                        ss2pk, ss2s, ss3s, ss4s, ss5s, ss6s, ss7s, ssd, ssf,    &
-                       ssp, sspj, sspk, sss, spf
+                       ssp, sspj, sspk, sss
    double precision :: p1s, p2s, p3s, p4s, p5s, p6s, p0pk, p1pk, pi0dd, pi0d,  &
                        pds, pdp, pdd, pi0sd, pi0pp, pi0p, pi0dp, pi0dkl, pi1dp,&
                        pi1dkl, pi1dd, pi0spj, pi1pl, pi1pkpm, pi1pk, pi1d,     &
@@ -54,16 +53,16 @@ use constants_mod, only: pi52
                        pp1d, pp1pl
    double precision :: d0d, d0p, d0pk, d0pkd, d0pkp, d0pl, d0pld, d0plp, d0s,  &
                        d1d, d1p, d1pk, d1pkd, d1pkp, d1pl, d1pld, d1plp, d1pp, &
-                       d1s, d1spm, d2d, d2p, dds, ddp, ddf, ddd, dij2plp,      &
+                       d1s, d1spm, d2d, d2p, dds, ddp, dd, ddf, ddd, dij2plp,  &
                        dij2pkp, dfs, dfp, dp0p, dp, dijplp, dfd, dd2p, dijpkp, &
                        dp0pm, dp1d, dp1p, dp1pm, dp1s, dp2p, dpd, dpf, dpk,    &
                        dpp, dps, ds, ds0p, ds1d, ds1p, dsp, dsf, dsd, ds2pl,   &
                        ds2p, ds1s, dss, dspl, dd1pn, dd1s, dd1p, dd1d, dd0pn,  &
-                       dd0p, dd, d5s, d4s, d3s, d3pl, d3pk, d3p, d4pk, d3d,    &
+                       dd0p, d5s, d4s, d3s, d3pl, d3pk, d3p, d4pk, d3d,        &
                        d2spm, d2s, d2pl, d2pk
    double precision :: fdp, fdd, fss, fsp, fsd, fps, fpp, fpd, fds
 
-   double precision :: ta, tb, ti, tj, te, ty, t0, t1, t2, t2a, t2b, t3, t3a,  &
+   double precision :: ta, tb, ti, tj, te, ty, t0, t1, t2, t3, t3a,            &
                        t3b, t4, t4b,  t5, t5a, t5b, t5x, t5y, t6, t6a, t6b,    &
                        t6c, t6d, t7, t7a, t7b, t7c, t7d, t8, t8a, t8b, t9, t9b,&
                        t10, t10a, t10b, t11, t11a, t11b, t12, t12a, t12b, t13, &

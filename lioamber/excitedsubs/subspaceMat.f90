@@ -5,7 +5,7 @@ subroutine subspaceMat(A,V,H,Ndim,Sdim)
    real*8, intent(in) :: A(Ndim,Sdim), V(Ndim,Sdim)
    real*8, intent(out) :: H(Sdim,Sdim)
 
-   integer :: i, j, k
+   integer :: i, j
    real*8, dimension(:,:), allocatable :: VT
 
    allocate(VT(Sdim,Ndim))

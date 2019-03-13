@@ -7,7 +7,7 @@ use lrdata, only: Coef_trans, Cocc, Cocc_trans, &
    integer, intent(in) :: M, NCO, Nvirt
    real*8, intent(in) :: Coef(M,M)
 
-   integer :: i, j
+   integer :: j
 
    allocate(Coef_trans(M,M),Cocc(M,NCO),Cocc_trans(NCO,M), &
             Cvir(M,Nvirt),Cvir_trans(Nvirt,M))

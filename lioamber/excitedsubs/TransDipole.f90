@@ -8,9 +8,10 @@ subroutine TransDipole(Tdens,Tdip,M,Nstat)
 
    integer :: i, j, ist
    real*8, dimension(:,:), allocatable :: RhoRmm
+   real*8, dimension(:), allocatable :: temp_dip
 
 !  SAVE RHO FROM RMM
-   allocate(RhoRmm(M,M))
+   allocate(RhoRmm(M,M),temp_dip(3))
    call spunpack_rho('L',M,RMM,RhoRmm)
 
    do ist=1,Nstat
@@ -20,9 +21,11 @@ subroutine TransDipole(Tdens,Tdip,M,Nstat)
       enddo
       enddo
       call sprepack('L',M,RMM,Tdens(:,:,ist))
-      call dip(Tdip(ist,:))
+      call dip(temp_dip)
+      Tdip(ist,:) = temp_dip
    enddo
    Tdip = Tdip * 2.0D0 / dsqrt(2.0D0)
+   deallocate(temp_dip)
 
 !  COPY RHO OLD INTO RMM
    do i=1,M
