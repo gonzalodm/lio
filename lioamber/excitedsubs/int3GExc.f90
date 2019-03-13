@@ -106,7 +106,6 @@ use constants_mod, only: pi52
 
       do nci = 1, ncont(ifunct)
       do ncj = 1, ncont(jfunct)
-         tj   = a(jfunct,ncj) / Zij
          Zij  = a(ifunct,nci) + a(jfunct,ncj)
          tj   = a(jfunct,ncj) / Zij
          rexp = a(ifunct,nci) * tj * d(Nuc(ifunct),Nuc(jfunct))
