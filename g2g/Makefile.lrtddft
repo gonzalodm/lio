@@ -24,11 +24,14 @@ ifeq ($(DO_lrtddft),1)
     eri_src=lrtddft/eri.cpp
     SRCS         += lrtddft/eri.cpp lrtddft/lrkernel.cpp lrtddft/gfactor.cpp lrtddft/calc_coef.cpp
     SRCS         += lrtddft/obtain.cpp lrtddft/forces_exc.cpp lrtddft/calc_gradients.cpp
-    SRCS         += lrtddft/calc_VXC.cpp lrtddft/calc_FXC.cpp
+    SRCS         += lrtddft/calc_VXC.cpp lrtddft/calc_FXC.cpp lrtddft/ppTDA.cpp
     OBJ          += lrtddft/eri.o lrtddft/lrkernel.o lrtddft/gfactor.o lrtddft/calc_coef.o
     OBJ          += lrtddft/obtain.o lrtddft/forces_exc.o lrtddft/calc_gradients.o
-    OBJ          += lrtddft/calc_VXC.o lrtddft/calc_FXC.o
+    OBJ          += lrtddft/calc_VXC.o lrtddft/calc_FXC.o lrtddft/ppTDA.o
 lrtddft/eri.o: $(eri_src)
+	$(CXX) -std=c++11 $(CXXFLAGS) $(INCS_LIBINT) -c $< -o $@
+
+lrtddft/ppTDA.o: lrtddft/ppTDA.cpp
 	$(CXX) -std=c++11 $(CXXFLAGS) $(INCS_LIBINT) -c $< -o $@
 else
     fake=lrtddft/lrkernel_fake

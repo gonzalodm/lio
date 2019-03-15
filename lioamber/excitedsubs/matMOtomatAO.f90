@@ -26,6 +26,7 @@ use lrdata, only: Coef_trans
        do j=1,M
        do k=1,M
          MatAO(k,j,i) = scratch(j,k)
+         print*, k,j,i,MatAO(k,j,i)
        enddo
        enddo
      enddo

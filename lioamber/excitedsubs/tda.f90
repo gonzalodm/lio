@@ -1,8 +1,9 @@
 subroutine linear_response(MatCoef,VecEne,Xlr,deltaE,M,Nvirt,NCO,dim)
-use lrdata, only: nstates, cbas, root, fitLR, Coef_trans
+use lrdata, only: nstates, cbas, root, fitLR, Coef_trans, ppTDA
    implicit none
 
-   integer, intent(in) :: M, Nvirt, NCO, dim
+   integer, intent(in) :: M, Nvirt, NCO
+   integer, intent(inout) :: dim
    real*8, intent(in) :: MatCoef(M,M), VecEne(M)
    real*8, intent(out) :: deltaE
    real*8, intent(out) :: Xlr(dim)
@@ -18,18 +19,33 @@ use lrdata, only: nstates, cbas, root, fitLR, Coef_trans
    integer :: calc_2elec
    logical :: conv
 
+   integer :: i , j , k ! ELIMINAR
+
    calc_2elec = 0
    conv = .false.
 
    call g2g_timer_start('LINEAR RESPONSE')
 
-   print*, ""
-   print*,"======================================="
-   print*,"         LINEAR RESPONSE - TDA"
-   print*,"======================================="
-   print*, ""
+   if (.not. ppTDA) then
+      print*, ""
+      print*,"======================================="
+      print*,"         LINEAR RESPONSE - TDA"
+      print*,"======================================="
+      print*, ""
+   else
+      print*, ""
+      print*,"======================================="
+      print*,"       LINEAR RESPONSE - ppTDA"
+      print*,"======================================="
+      print*, ""
+   endif
 
-!  CHECK INPUT VARIABLES
+!  DIMENSION FOR ppTDA
+   if ( ppTDA ) then
+      dim = Nvirt * (Nvirt-1) / 2
+   endif
+
+!  CHECK INPUT VARIABLES FOR TDA
    if (nstates > dim) then
       print*, "NUMBER OF EXCITED STATES THAT YOU WANT IS BIGGER &
                & THAN DIMENSION MATRIX"
@@ -94,31 +110,48 @@ use lrdata, only: nstates, cbas, root, fitLR, Coef_trans
 !    CALCULATE 2E INTEGRALS
      allocate(FM2(M,M,vec_dim)); FM2 = 0.0D0
      call g2g_timer_start('2E integrals of vectrs')
-     if (.not. fitLR) then
-        call g2g_calculate2e(tmatAO,cbas,vec_dim,FM2,calc_2elec)
-        calc_2elec = 1 ! TURN OFF CALCULATE INTEGRALS
-     else
-        call calc2eFITT(tmatAO,FM2,vec_dim,M)
+     if (.not. ppTDA) then ! TDA
+        if (.not. fitLR) then
+           call g2g_calculate2e(tmatAO,cbas,vec_dim,FM2,calc_2elec)
+           calc_2elec = 1 ! TURN OFF CALCULATE INTEGRALS
+        else
+           call calc2eFITT(tmatAO,FM2,vec_dim,M)
+        endif
+     else ! ppTDA
+        call g2g_calcpptda(tmatAO,cbas,vec_dim,FM2)
+       !do k=1,vec_dim
+       !do i=1,M
+       !do j=1,M
+       !   print*, k,i,j,FM2(i,j,k)
+       !enddo
+       !enddo
+       !enddo
+       !stop
+      
      endif
+        
      call g2g_timer_stop('2E integrals of vectrs')
 
-!    CALCULATE DFT INTEGRALS
-     allocate(FXC(M,M,vec_dim))
-     call g2g_timer_start('Dft integrals of vectors')
-     do iv=1,vec_dim ! LOOPS VECTORS INSIDE OF CYCLE
-        call multlr(tmatMO(:,:,iv),Coef_trans,vmatAO,M,M,M,1.0D0,0.0D0)
-        call g2g_calculatedft(vmatAO,MatCoef,Fv,NCO)
-        FXC(:,:,iv) = Fv
-        Fv = 0.0D0
-     enddo ! END LOOPS VECTORS
-     deallocate(tmatMO)
-     call g2g_timer_stop('Dft integrals of vectors')
+! THIS ONLY WORK IN TDA CALCULATION
+     if (.not. ppTDA) then
+!       CALCULATE DFT INTEGRALS
+        allocate(FXC(M,M,vec_dim))
+        call g2g_timer_start('Dft integrals of vectors')
+        do iv=1,vec_dim ! LOOPS VECTORS INSIDE OF CYCLE
+           call multlr(tmatMO(:,:,iv),Coef_trans,vmatAO,M,M,M,1.0D0,0.0D0)
+           call g2g_calculatedft(vmatAO,MatCoef,Fv,NCO)
+           FXC(:,:,iv) = Fv
+           Fv = 0.0D0
+        enddo ! END LOOPS VECTORS
+        deallocate(tmatMO)
+        call g2g_timer_stop('Dft integrals of vectors')
 
-!    NOW FM2 CONTAIN THE 2e- AND DFT PARTS
-     FM2 = FM2 + FXC 
-     deallocate(FXC)
+!       NOW FM2 CONTAIN THE 2e- AND DFT PARTS
+        FM2 = FM2 + FXC 
+        deallocate(FXC)
+     endif
 
-!    WE OBTAIN AX (NDIM x NVEC)
+!    WE OBTAIN AX (NDIM x NVEC)  ! toy aqui
      call MtoIANV(FM2,MatCoef,AX,M,NCO,dim, &
                   Subdim,vec_dim,first_vec)
      deallocate(FM2)

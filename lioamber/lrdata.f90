@@ -2,6 +2,7 @@ module lrdata
    implicit none
 
    logical :: lresp = .false.
+   logical :: ppTDA = .true.
    ! Frozen Core and Valence Approximation
    logical :: FCA = .false.
    integer :: nfo = 3
