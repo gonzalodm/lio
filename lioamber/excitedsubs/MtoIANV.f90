@@ -1,5 +1,5 @@
 subroutine MtoIANV(F,C,A,M,NCO,Ndim,Sdim,Nvec,V1)
-use lrdata, only: Cocc_trans
+use lrdata, only: Cocc
 
    implicit none
 
@@ -18,11 +18,12 @@ use lrdata, only: Cocc_trans
 
    temp = 0.0D0
    do iv=1,Nvec
-     call multlr(Cocc_trans,F(:,:,iv),B,NCO,M,M,1.0D0,0.0D0)
+     call multlr(F(:,:,iv),Cocc,B,M,M,NCO,1.0D0,0.0D0)
+
      do i=1,NCO
      do j=NCOc,M
        do k=1,M
-         temp = temp + B(NCOc-i,k) * C(k,j)
+         temp = temp + B(k,NCOc-i) * C(k,j)
        enddo
        row = (i-1) * Nvirt + (j-NCO)
        A(row,V1+iv) = temp
