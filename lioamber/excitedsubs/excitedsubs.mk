@@ -47,5 +47,13 @@ included += varcoef_calc.f90
 included += int2GExc.f90
 included += int3GExc.f90
 
+# open shell Linear response
+included += open_ExcProp.f90
+included += open_tda.f90
+included += open_basis_init.f90
+included += open_basis_deinit.f90
+included += open_matMOtomatAO.f90
+
+
 
 $(OBJPATH)/excitedsubs.o : $(included) excitedsubs.mk

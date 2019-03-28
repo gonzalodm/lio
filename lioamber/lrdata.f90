@@ -20,4 +20,12 @@ module lrdata
    ! Excited States FORCES
    logical :: excited_forces = .false.
    real*8, dimension(:,:), allocatable :: forEXC
+
+
+!  OPEN LINEAR RESPONSE
+   real*8, dimension(:,:), allocatable :: coef_a
+  
+   ! Change basis
+   real*8, dimension(:,:), allocatable :: Coef_transB, CoccB, Cocc_transB, &
+                                          CvirB, Cvir_transB
 end module lrdata

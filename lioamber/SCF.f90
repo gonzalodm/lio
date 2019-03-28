@@ -70,8 +70,8 @@ subroutine SCF(E)
    use fileio       , only: write_energies, write_energy_convergence, &
                             write_final_convergence
    use fileio_data  , only: verbose
-   use lrdata, only: lresp
-   use excitedsubs, only: ExcProp
+   use lrdata, only: lresp, coef_a
+   use excitedsubs, only: ExcProp, open_ExcProp
    use converger_ls , only: Rho_LS, changed_to_LS, P_conver, P_linearsearch_init
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
@@ -715,6 +715,14 @@ subroutine SCF(E)
         call standard_coefs( morb_coefat )
         call g2g_timer_sum_pause('SCF - MOC base change (sum)')
 
+        ! this is when used open with LR: gonza #####
+        if (open) then
+           if (allocated(coef_a)) deallocate(coef_a)
+             allocate(coef_a(M,M))
+           coef_a = morb_coefat
+        endif
+        ! ###########################################
+
         if ( allocated(morb_coefon) ) deallocate(morb_coefon)
         call rho_aop%Dens_build(M_in, NCOa_in, ocupF, morb_coefat)
         call rho_aop%Gets_data_AO(rho_a)
@@ -1045,7 +1053,11 @@ subroutine SCF(E)
 
    if (lresp) then
      if (OPEN) then
-       print*, "LINEAR RESPONSE ONLY WORKS WITH CLOSED SHELL"
+       call open_ExcProp(coef_a,morb_coefat,Eorbs,Eorbs_b,NCOa_in,NCOb_in)
+       ! coef_a = coeficientes scf alpha
+       ! Eorbs = energias orbitales alpha
+       ! morb_coefat = coeficientes scf beta
+       ! Eorbs_b = enerias orbitales beta
      else
        call ExcProp(morb_coefat,morb_energy,E)
      endif

@@ -57,4 +57,13 @@ contains
 #include "int2GExc.f90"
 #include "int3GExc.f90"
 
+
+! open shell linear response
+#include "open_ExcProp.f90"
+#include "open_tda.f90"
+#include "open_basis_init.f90"
+#include "open_basis_deinit.f90"
+#include "open_matMOtomatAO.f90"
+
+
 end module excitedsubs
