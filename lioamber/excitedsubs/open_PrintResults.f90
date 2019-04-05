@@ -42,8 +42,8 @@ use lrdata, only: nfo
      enddo
      print*, " "
    enddo
-
+   
    100 FORMAT(1X,"STATE ",I2,3X,"ENERGY=",F8.4," Hartree, ",&
               F12.6," nm"," OSC=",F8.4)
-   101 FORMAT(6X,I2," -> ",I2,1X,A,2X,F14.7)
+   101 FORMAT(6X,I3," -> ",I3,1X,A,2X,F14.7)
 end subroutine open_PrintResults
