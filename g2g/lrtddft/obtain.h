@@ -19,6 +19,7 @@ public:
        ~Obtain(); // Destructor
 
        void calculate(double* Tmat, FourCenter* Kmat, double* Fmat);
+       void calculate(double* TA,double* TB,FourCenter* Kmat,double* FA, double* FB);
 };
 
 #endif

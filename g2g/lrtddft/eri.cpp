@@ -28,8 +28,6 @@ void eri(int M,uint natoms,uint*ncont,
          double*cbas,double*a,double*r,uint*nuc,
          int sfunc,int pfunc, int dfunc)
 {
-  int M3, M2;
-  M3 = M*M*M; M2 = M*M;
   libint2::initialize();
   Shell::do_enforce_unit_normalization(false);
   std::vector<Atom> atoms = libint_geom(r,natoms);

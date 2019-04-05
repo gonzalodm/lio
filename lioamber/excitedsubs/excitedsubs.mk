@@ -53,6 +53,15 @@ included += open_tda.f90
 included += open_basis_init.f90
 included += open_basis_deinit.f90
 included += open_matMOtomatAO.f90
+included += open_initvec.f90
+included += open_MtoIANV.f90
+included += open_subspaceMat.f90
+included += open_RitzObtain.f90
+included += open_residual.f90
+included += open_new_vectors.f90
+included += open_PrintResults.f90
+included += open_OscStr.f90
+included += open_calc2eFITT.f90
 
 
 

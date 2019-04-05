@@ -1,0 +1,183 @@
+WELCOME TO LIO
+jue mar 28 23:49:20 -03 2019
+Error found in lionml namelist. Using defaults for namelist lionml.
+iostat =   -1
+
+LIO input variables
+ ! -- General and theory level: -- !
+  Natom =      2, Nsol =        0, charge =     0, Nunp =     0, open =  F,
+  Nmax =   100, int_basis =  T, basis_set = 3-21G                    ,
+  fitting_set = DZVP Coulomb Fitting     , DIIS =  T, NDIIS =  30,
+  hybrid_converg =  F, Gold =    10.00000000, Told =     0.00000100,
+  Etold =     1.00000000, good_cut =     0.00100000, Rmax =    16.00000000,
+  RmaxS =     5.00000000, IExch =     9, IGrid =   2, IGrid2 =   2,
+  PredCoef =  F, initial_guess =   0, DBug =  F,
+  n_ghosts =     0
+ ! -- Input and output options: -- !
+  verbose =   4, style =  F, timers =   0, writeXYZ =  F, writeForces =  T,
+  dipole =  F, mulliken =  T, lowdin =  F, fukui =  F, print_coeffs =  F,
+  VCInp =  F, FRestartIn =      restart.in          , restart_freq =     0,
+  FRestart =      restart.out         , TDRestart =  F, writeDens =  F,
+  TD_rst_freq =    500, gaussian_convert =  F,
+  rst_dens =   0
+ ! -- TD-DFT and external field: -- !
+  timeDep =  0, NTDStep =       1000, TDStep =     0.00200000, propagator =  1,
+  NBCH =   10, field =  F, a0 =  1000.00000000, epsilon =     1.00000000,
+  Fx =     0.00000000, Fy =     0.00000000, Fz =     0.00000000, n_fields_iso =     0,
+  n_fields_aniso =     0, field_iso_file =      field.in            ,
+  field_aniso_file =      fieldaniso.in       , td_do_pop =     0
+ ! -- Effective Core Potentials: -- !
+  ECPMode =  F, ECPTypes =   0, TipeECP = NOT-DEFINED              ,
+  Fock_ECP_read =  F, Fock_ECP_write =  F, cutECP =  T, cut2_0 =    15.00000000,
+  cut3_0 =    12.00000000, verbose_ECP =  0, ECP_debug =  F, fullTimer_ECP =  F,
+  local_nonlocal =  0, ECP_full_range_int =  F
+  ZListECP = 
+ ! -- Minimizations and restraints: -- !
+  steep =  F, minimzation_steep =     0.05000000, energy_cut =     0.00010000,
+  force_cut =     0.00001000, n_min_steeps =   500, lineal_search =  T,
+  n_points =     5, number_restr =     0
+ ! -- CubeGen: -- !
+  CubeGen_only =  F, cube_res =    40, cube_sel =     0, cube_dens =  F,
+  cube_orb =  F, cube_elec =  F, cube_dens_file =      dens.cube           ,
+  cube_orb_file =      orb.cube            , cube_elec_file =      dens.cube           
+ ! -- GPU Options: -- !
+  energy_all_iterations =  T, assign_all_functions =  F, remove_zero_weights =  T,
+  max_function_exponent =    10, free_global_memory =     0.00000000,
+  sphere_radius =     0.50000000, little_cube_size =    15.50000000,
+  min_points_per_cube =     1, gpu_level =     4
+ ! -- Transport and DFTB: -- !
+  transport_calc =  F, generate_rho0 =  F, driving_rate =     0.00100000,
+  gate_field =  F, pop_drive =   1, save_charge_freq =     1, DFTB_calc =  F,
+  MTB =     0, alfaTB =     0.00000000, betaTB =     0.00000000,
+  gammaTB =     0.00000000, VBias_TB =     0.00000000, start_TDTB =     0,
+  end_TDTB =     0, end_BTB =     0, TBLoad =  F, TBSave =  F
+  nbias=    0
+ ! -- Ehrenfest: -- !
+  ndyn_steps =      0, edyn_steps =      0, nullify_forces =  F,
+  wdip_nfreq =     0, wdip_fname = liorun.dip               , rsti_loads =  F,
+  rsto_saves =  F, rsto_nfreq =  F, rsti_fname = liorun.rsti              ,
+  rsto_fname = liorun.rsto              , eefld_on =  F, eefld_ampx =    0.00000000,
+  eefld_ampy =     0.00000000, eefld_ampz =     0.00000000,
+  eefld_timeamp =     0.20000000, eefld_timepos =     1.00000000,
+  eefld_timegfh =  F, eefld_timegih =  F, eefld_wavelen =     0.00000000
+ ! -- Fock Bias Potentials: -- !
+  fockbias_is_active =  F, fockbias_is_shaped =  F, fockbias_timeamp0 =     0.00000000,
+  fockbias_timegrow =     0.00000000, fockbias_timefall =     0.00000000,
+  fockbias_readfile = atombias.in              
+
+LIO initialisation.
+  Using 1 CPU Threads and 0 GPU Threads.
+  QM atoms: 2 - MM atoms: 0
+  Total number of basis: 4 (s: 4 p: 0 d: 0)
+  Closed shell calculation - Occupied MO: 1
+*Using Libxc
+AINT initialisation.
+  Density basis - s: 8 p: 0 d: 0 - Total (w/contractions): 8
+
+Starting SCF cycles.
+  Step =      1  - QM Energy =        -1.08343 - Rho diff (crit) =  8.25E-02 ( 1.00E-06) - Energy diff (crit) =  1.08E+00 ( 1.00E+00)
+  Step =      2  - QM Energy =        -1.09199 - Rho diff (crit) =  5.61E-04 ( 1.00E-06) - Energy diff (crit) =  8.57E-03 ( 1.00E+00)
+  Step =      3  - QM Energy =        -1.09200 - Rho diff (crit) =  5.16E-03 ( 1.00E-06) - Energy diff (crit) =  8.89E-06 ( 1.00E+00)
+  Step =      4  - QM Energy =        -1.09204 - Rho diff (crit) =  3.56E-02 ( 1.00E-06) - Energy diff (crit) =  4.02E-05 ( 1.00E+00)
+  Step =      5  - QM Energy =        -1.09023 - Rho diff (crit) =  3.55E-02 ( 1.00E-06) - Energy diff (crit) =  1.81E-03 ( 1.00E+00)
+  Step =      6  - QM Energy =        -1.09204 - Rho diff (crit) =  9.29E-04 ( 1.00E-06) - Energy diff (crit) =  1.81E-03 ( 1.00E+00)
+  Step =      7  - QM Energy =        -1.09204 - Rho diff (crit) =  9.58E-04 ( 1.00E-06) - Energy diff (crit) =  9.01E-07 ( 1.00E+00)
+  Step =      8  - QM Energy =        -1.09204 - Rho diff (crit) =  9.92E-05 ( 1.00E-06) - Energy diff (crit) =  8.90E-07 ( 1.00E+00)
+  Step =      9  - QM Energy =        -1.09204 - Rho diff (crit) =  1.15E-04 ( 1.00E-06) - Energy diff (crit) =  5.65E-08 ( 1.00E+00)
+  Step =     10  - QM Energy =        -1.09204 - Rho diff (crit) =  3.01E-04 ( 1.00E-06) - Energy diff (crit) =  1.00E-07 ( 1.00E+00)
+  Step =     11  - QM Energy =        -1.09204 - Rho diff (crit) =  2.73E-04 ( 1.00E-06) - Energy diff (crit) =  1.83E-07 ( 1.00E+00)
+  Step =     12  - QM Energy =        -1.09204 - Rho diff (crit) =  2.64E-04 ( 1.00E-06) - Energy diff (crit) =  1.56E-07 ( 1.00E+00)
+  Step =     13  - QM Energy =        -1.09204 - Rho diff (crit) =  2.58E-04 ( 1.00E-06) - Energy diff (crit) =  1.54E-07 ( 1.00E+00)
+  Step =     14  - QM Energy =        -1.09204 - Rho diff (crit) =  2.26E-04 ( 1.00E-06) - Energy diff (crit) =  1.49E-07 ( 1.00E+00)
+  Step =     15  - QM Energy =        -1.09204 - Rho diff (crit) =  2.32E-04 ( 1.00E-06) - Energy diff (crit) =  1.40E-07 ( 1.00E+00)
+  Step =     16  - QM Energy =        -1.09204 - Rho diff (crit) =  1.09E-04 ( 1.00E-06) - Energy diff (crit) =  1.47E-07 ( 1.00E+00)
+  Step =     17  - QM Energy =        -1.09204 - Rho diff (crit) =  3.86E-04 ( 1.00E-06) - Energy diff (crit) =  8.79E-08 ( 1.00E+00)
+  Step =     18  - QM Energy =        -1.09204 - Rho diff (crit) =  1.41E-04 ( 1.00E-06) - Energy diff (crit) =  4.01E-08 ( 1.00E+00)
+  Step =     19  - QM Energy =        -1.09204 - Rho diff (crit) =  9.54E-05 ( 1.00E-06) - Energy diff (crit) =  3.44E-08 ( 1.00E+00)
+  Step =     20  - QM Energy =        -1.09204 - Rho diff (crit) =  1.03E-02 ( 1.00E-06) - Energy diff (crit) =  8.59E-09 ( 1.00E+00)
+  Step =     21  - QM Energy =        -1.09190 - Rho diff (crit) =  1.04E-02 ( 1.00E-06) - Energy diff (crit) =  1.48E-04 ( 1.00E+00)
+  Step =     22  - QM Energy =        -1.09204 - Rho diff (crit) =  2.10E-04 ( 1.00E-06) - Energy diff (crit) =  1.47E-04 ( 1.00E+00)
+  Step =     23  - QM Energy =        -1.09204 - Rho diff (crit) =  1.72E-04 ( 1.00E-06) - Energy diff (crit) =  5.50E-08 ( 1.00E+00)
+  Step =     24  - QM Energy =        -1.09204 - Rho diff (crit) =  2.39E-04 ( 1.00E-06) - Energy diff (crit) =  3.55E-08 ( 1.00E+00)
+  Step =     25  - QM Energy =        -1.09204 - Rho diff (crit) =  3.83E-03 ( 1.00E-06) - Energy diff (crit) =  1.89E-07 ( 1.00E+00)
+  Step =     26  - QM Energy =        -1.09202 - Rho diff (crit) =  4.16E-03 ( 1.00E-06) - Energy diff (crit) =  2.51E-05 ( 1.00E+00)
+  Step =     27  - QM Energy =        -1.09204 - Rho diff (crit) =  7.99E-04 ( 1.00E-06) - Energy diff (crit) =  2.53E-05 ( 1.00E+00)
+  Step =     28  - QM Energy =        -1.09204 - Rho diff (crit) =  8.77E-04 ( 1.00E-06) - Energy diff (crit) =  1.06E-06 ( 1.00E+00)
+  Step =     29  - QM Energy =        -1.09204 - Rho diff (crit) =  4.43E-04 ( 1.00E-06) - Energy diff (crit) =  1.07E-06 ( 1.00E+00)
+  Step =     30  - QM Energy =        -1.09204 - Rho diff (crit) =  4.34E-04 ( 1.00E-06) - Energy diff (crit) =  2.68E-07 ( 1.00E+00)
+  Step =     31  - QM Energy =        -1.09204 - Rho diff (crit) =  1.06E-04 ( 1.00E-06) - Energy diff (crit) =  2.68E-07 ( 1.00E+00)
+  Step =     32  - QM Energy =        -1.09204 - Rho diff (crit) =  2.24E-04 ( 1.00E-06) - Energy diff (crit) =  1.56E-08 ( 1.00E+00)
+  Step =     33  - QM Energy =        -1.09204 - Rho diff (crit) =  2.54E-06 ( 1.00E-06) - Energy diff (crit) =  4.40E-09 ( 1.00E+00)
+  Step =     34  - QM Energy =        -1.09204 - Rho diff (crit) =  1.20E-04 ( 1.00E-06) - Energy diff (crit) =  8.47E-10 ( 1.00E+00)
+  Step =     35  - QM Energy =        -1.09204 - Rho diff (crit) =  1.20E-04 ( 1.00E-06) - Energy diff (crit) =  5.97E-08 ( 1.00E+00)
+  Step =     36  - QM Energy =        -1.09204 - Rho diff (crit) =  1.28E-06 ( 1.00E-06) - Energy diff (crit) =  5.98E-08 ( 1.00E+00)
+  Step =     37  - QM Energy =        -1.09204 - Rho diff (crit) =  1.23E-06 ( 1.00E-06) - Energy diff (crit) =  4.26E-10 ( 1.00E+00)
+  Step =     38  - QM Energy =        -1.09204 - Rho diff (crit) =  3.28E-08 ( 1.00E-06) - Energy diff (crit) =  4.07E-10 ( 1.00E+00)
+  Convergence achieved in     38 iterations. Final energy     -1.0920426 A.U.
+
+Final Energy Contributions in A.U.
+  Total energy =    -1.092043
+  One electron =    -1.980982
+  Coulomb      =     1.052910
+  Nuclear      =     0.416301
+  Exch. Corr.  =    -0.580272
+
+ FCA is not used
+ 
+ =======================================
+          LINEAR RESPONSE - TDA
+ =======================================
+ 
+ NUMBER OF EXCITED STATES THAT YOU WANT IS BIGGER  THAN DIMENSION MATRIX
+ WE CALCULATED           3
+ NCO, NVIRT, M                       1   3   4
+ DIMENSION OF FULL MATRIX             3
+ MAX SUBSPACE                         3
+ MAX ITERATIONES                     1
+ NUMBER OF INITIAL TRIALS VECTORS      3
+ 
+ ITERATION:       1
+ SUBSPACE:          3
+ VECTORS INSIDE:    3
+ ERI SUBROUTINE 0.000139
+ TIME FOCK CALCULATION 0.000002
+ STATE  1   ENERGY=  0.4505 Hartree,   101.150067 nm OSC=  1.1554
+       1 ->  2      -0.7007540
+  
+ STATE  2   ENERGY=  1.2549 Hartree,    36.307645 nm OSC=  0.0000
+       1 ->  4       0.7071068
+  
+ STATE  3   ENERGY=  1.2641 Hartree,    36.045003 nm OSC=  0.0025
+       1 ->  3      -0.7007540
+  
+ 
+ =======================================
+             Z-VECTOR METHOD
+ =======================================
+ 
+ FORM RELAXED DENSITY MATRIX FOR EXCITED STATE:  1
+ 
+ SOLVE_3DER SUBROUTINE 0.023137
+ SOLVE_3DER SUBROUTINE 0.013821
+ SOLVE_3DER SUBROUTINE 0.013894
+ TIME FOCK CALCULATION 0.000001
+ 
+ Start PCG loop
+ 
+ TIME FOCK CALCULATION 0.000001
+ SOLVE_3DER SUBROUTINE 0.013807
+ Iteration =  1 Error (crit) = 5.27E-24 ( 1.00E-12)
+ 
+ Convergence achieved in  1 itertaions
+G2G DEINIT EXC
+G2G Deinitialisation.
+=========================================================== 
+ The simulation used the functionals from the Libxc Library 
+ The functionals used are listed below 
+The functional 'Perdew, Burke & Ernzerhof' is an exchange functional, it belongs to the 'GGA' family and is defined in the reference(s):
+[1] J. P. Perdew, K. Burke, and M. Ernzerhof, Phys. Rev. Lett. 77, 3865 (1996)
+[2] J. P. Perdew, K. Burke, and M. Ernzerhof, Phys. Rev. Lett. 78, 1396 (1997)
+The functional 'Perdew, Burke & Ernzerhof' is a correlation functional, it belongs to the 'GGA' family and is defined in the reference(s):
+[1] J. P. Perdew, K. Burke, and M. Ernzerhof, Phys. Rev. Lett. 77, 3865 (1996)
+[2] J. P. Perdew, K. Burke, and M. Ernzerhof, Phys. Rev. Lett. 78, 1396 (1997)
+=========================================================== 

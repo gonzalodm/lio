@@ -28,6 +28,9 @@ ifeq ($(DO_lrtddft),1)
     OBJ          += lrtddft/eri.o lrtddft/lrkernel.o lrtddft/gfactor.o lrtddft/calc_coef.o
     OBJ          += lrtddft/obtain.o lrtddft/forces_exc.o lrtddft/calc_gradients.o
     OBJ          += lrtddft/calc_VXC.o lrtddft/calc_FXC.o
+# OPEN SHELL IN LINEAR RESPONSE
+    SRCS         += lrtddft/open_lrkernel.cpp
+    OBJ          += lrtddft/open_lrkernel.o
 lrtddft/eri.o: $(eri_src)
 	$(CXX) -std=c++11 $(CXXFLAGS) $(INCS_LIBINT) -c $< -o $@
 else

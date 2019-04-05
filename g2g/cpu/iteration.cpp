@@ -367,7 +367,7 @@ void PointGroupCPU<scalar_type>::solve_opened(
 
   /** density **/
   if (lda) {
-  } else {
+  } else { // PBE
 #pragma omp parallel for num_threads(inner_threads) \
     reduction(+ : localenergy) schedule(static)
     for (int point = 0; point < npoints; point++) {
@@ -447,29 +447,29 @@ void PointGroupCPU<scalar_type>::solve_opened(
         pd_a += Fi * w_a;
 
         tdx_a += gx * w_a + w3x_a * Fi;
-        tdd1x_a += gx * w3x_a * 2 + hpx * w_a + ww1x_a * Fi;
+        tdd1x_a += gx * w3x_a * 2.0f + hpx * w_a + ww1x_a * Fi;
         tdd2x_a += gx * w3y_a + gy * w3x_a + hix * w_a + ww2x_a * Fi;
 
         tdy_a += gy * w_a + w3y_a * Fi;
-        tdd1y_a += gy * w3y_a * 2 + hpy * w_a + ww1y_a * Fi;
+        tdd1y_a += gy * w3y_a * 2.0f + hpy * w_a + ww1y_a * Fi;
         tdd2y_a += gx * w3z_a + gz * w3x_a + hiy * w_a + ww2y_a * Fi;
 
         tdz_a += gz * w_a + w3z_a * Fi;
-        tdd1z_a += gz * w3z_a * 2 + hpz * w_a + ww1z_a * Fi;
+        tdd1z_a += gz * w3z_a * 2.0f + hpz * w_a + ww1z_a * Fi;
         tdd2z_a += gy * w3z_a + gz * w3y_a + hiz * w_a + ww2z_a * Fi;
 
         pd_b += Fi * w_b;
 
         tdx_b += gx * w_b + w3x_b * Fi;
-        tdd1x_b += gx * w3x_b * 2 + hpx * w_b + ww1x_b * Fi;
+        tdd1x_b += gx * w3x_b * 2.0f + hpx * w_b + ww1x_b * Fi;
         tdd2x_b += gx * w3y_b + gy * w3x_b + hix * w_b + ww2x_b * Fi;
 
         tdy_b += gy * w_b + w3y_b * Fi;
-        tdd1y_b += gy * w3y_b * 2 + hpy * w_b + ww1y_b * Fi;
+        tdd1y_b += gy * w3y_b * 2.0f + hpy * w_b + ww1y_b * Fi;
         tdd2y_b += gx * w3z_b + gz * w3x_b + hiy * w_b + ww2y_b * Fi;
 
         tdz_b += gz * w_b + w3z_b * Fi;
-        tdd1z_b += gz * w3z_b * 2 + hpz * w_b + ww1z_b * Fi;
+        tdd1z_b += gz * w3z_b * 2.0f + hpz * w_b + ww1z_b * Fi;
         tdd2z_b += gy * w3z_b + gz * w3y_b + hiz * w_b + ww2z_b * Fi;
       }
 

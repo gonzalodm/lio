@@ -141,6 +141,10 @@ class PointGroup {
   virtual void solve_3rd_der(double* Tmat,double* F,int& DER) = 0;
   virtual void solve_for_exc(double*P,double*V,double*C,double*F,int& NCO) = 0;
 
+  // openLR
+  virtual void open_solve_closed_lr(double* Ta,double* Tb,double* Ca,double* Cb,
+                                    double* Fa,double* Fb,int& NCOa,int& NCOb) = 0;
+
   bool is_significative(FunctionType, double exponent, double coeff, double d2);
 
   void assign_functions_as_sphere(uint, double, const std::vector<double>&,
@@ -192,6 +196,9 @@ class PointGroupCPU : public PointGroup<scalar_type> {
   virtual void solve_3rd_der(double* Tmat,double* F,int& DER);
   virtual void solve_for_exc(double*P,double*V,double*C,double*F,int& NCO);
 
+  // openLR
+  virtual void open_solve_closed_lr(double* Ta,double* Tb,double* Ca,double* Cb,
+                                    double* Fa,double* Fb,int& NCOa,int& NCOb);
 
   typedef vec_type<scalar_type, 2> vec_type2;
   typedef vec_type<scalar_type, 3> vec_type3;
@@ -228,6 +235,10 @@ class PointGroupGPU: public PointGroup<scalar_type> {
     virtual void solve_3rd_der(double* Tmat,double* F,int& DER);
     virtual void solve_for_exc(double*P,double*V,double*C,double*F,int& NCO);
 
+    // openLR
+    virtual void open_solve_closed_lr(double* Ta,double* Tb,double* Ca,double* Cb,
+                                      double* Fa,double* Fb,int& NCOa,int& NCOb);
+
     typedef vec_type<scalar_type,2> vec_type2;
     typedef vec_type<scalar_type,3> vec_type3;
     typedef vec_type<scalar_type,4> vec_type4;
@@ -260,6 +271,10 @@ class Partition {
     void solve_lr(double* T,double* C,double* F,int& NCO);
     void solve_Gxc(double* Tmat,double* F,int& DER);
     void solveForcesExc(double*P,double*V,double*C,double*F,int& NCO);
+
+    // open LR
+    void open_solve_lr(double* Ta,double* Tb,double* Ca,double* Cb,
+                       double* Fa,double* Fb,int& NCOa,int& NCOb);
 
     std::vector<PointGroup<base_scalar_type>*> cubes;
     std::vector<PointGroup<base_scalar_type>*> spheres;

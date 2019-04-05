@@ -1,4 +1,5 @@
 subroutine multlr(A,B,C,M,K,N,alpha,beta)
+! C = A * B
    implicit none
 
    integer, intent(in) :: M, K, N

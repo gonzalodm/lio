@@ -64,6 +64,15 @@ contains
 #include "open_basis_init.f90"
 #include "open_basis_deinit.f90"
 #include "open_matMOtomatAO.f90"
+#include "open_initvec.f90"
+#include "open_MtoIANV.f90"
+#include "open_subspaceMat.f90"
+#include "open_RitzObtain.f90"
+#include "open_residual.f90"
+#include "open_new_vectors.f90"
+#include "open_PrintResults.f90"
+#include "open_OscStr.f90"
+#include "open_calc2eFITT.f90"
 
 
 end module excitedsubs

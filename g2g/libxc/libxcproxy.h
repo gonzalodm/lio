@@ -83,6 +83,9 @@ public:
     void coefLR(double* rho,double* sigma,
                 double red,double cruz,double* lrCoef);
 
+    // Open LR
+    void coefLR(double* rho,double* tra,double* lrCoef);
+
     void coefZv(double* rho,double* sgm, // inputs
                 // first derivatives
                 double* vrho,double* vsigma, 
@@ -568,6 +571,106 @@ void LibxcProxy <T, width>::coefLR (double *rho,
    term2 = 2.0f * vsigmaC[0];
    term3 = vsigmaC[1];
    lrCoef[2] = term1 + term2 + term3;
+
+   return;
+}
+
+// OPEN LR COEFF
+template <class T, int width>
+void LibxcProxy <T, width>::coefLR (double* rho,double* tra,double* lrCoef)
+{
+/*
+INPUTS:
+   rho[0] = alpha density
+   rho[1] = alpha density gradient X
+   rho[2] = alpha density gradient Y
+   rho[3] = alpha density gradient Z
+   rho[4] = beta density
+   rho[5] = beta density gradient X
+   rho[6] = beta density gradient Y
+   rho[7] = beta density gradient Z
+
+   tra[0] = alpha transition density
+   tra[1] = alpha transition density gradient X
+   tra[2] = alpha transition density gradient Y
+   tra[3] = alpha transition density gradient Z
+   tra[4] = beta transition density
+   tra[5] = beta transition density gradient X
+   tra[6] = beta transition density gradient Y
+   tra[7] = beta transition density gradient Z
+   tra[8] = alpha transition density TWO gradients 
+   tra[9] = beta transition density TWO gradiensts
+
+*/
+   // The otputs for exchange
+   double vrhoX[2], vsigmaX[3],v2rho2X[3],v2rhosigmaX[6],v2sigma2X[6];
+
+   // The ouputs for correlation
+   double vrhoC[2], vsigmaC[3],v2rho2C[3],v2rhosigmaC[6],v2sigma2C[6];
+
+   // NOT Refence
+   double exc = 0.0f;
+
+   // Varibles to LIBXC
+   double dens[2], sigma[3];
+   dens[0]  = rho[0]; dens[1] = rho[4];
+   sigma[0] = rho[1] * rho[1] + rho[2] * rho[2] + rho[3] * rho[3]; // sigma_aa
+   sigma[1] = rho[1] * rho[5] + rho[2] * rho[6] + rho[3] * rho[7]; // sigma_ab
+   sigma[2] = rho[5] * rho[5] + rho[6] * rho[6] + rho[7] * rho[7]; // sigma_bb
+
+   // Exchange values
+   xc_gga(&funcForExchange,1,dens,sigma,&exc,vrhoX,vsigmaX,
+          v2rho2X,v2rhosigmaX,v2sigma2X,NULL,NULL,NULL,NULL);
+
+   // Correlation values
+   xc_gga(&funcForCorrelation,1,dens,sigma,&exc,vrhoC,vsigmaC,
+          v2rho2C,v2rhosigmaC,v2sigma2C,NULL,NULL,NULL,NULL);
+
+   double DUMGRB, DUMGRC;
+
+   // ALPHA
+   DUMGRB=tra[1]*rho[1]+tra[2]*rho[2]+tra[3]*rho[3];
+   DUMGRC=tra[1]*rho[5]+tra[2]*rho[6]+tra[3]*rho[7];
+
+   // COEFFICIENTS
+   lrCoef[0] = v2rho2X[0]*tra[0]+2.0f*v2rhosigmaX[0]*DUMGRB;
+   lrCoef[0] += v2rho2C[0]*tra[0]+2.0f*v2rhosigmaC[0]*DUMGRB+
+                v2rhosigmaC[1]*DUMGRC;
+   lrCoef[1] = 2.0f*v2rhosigmaX[0]*tra[0]+4.0f*v2sigma2X[0]*DUMGRB;
+   lrCoef[1] += 2.0f*v2rhosigmaC[0]*tra[0]+4.0f*v2sigma2C[0]*DUMGRB+
+                2.0f*v2sigma2C[1]*DUMGRC;
+   lrCoef[2] = v2rhosigmaC[1]*tra[0]+2.0f*v2sigma2C[1]*DUMGRB+
+               v2sigma2C[3]*DUMGRC;
+   lrCoef[3] = 2.0f*vsigmaX[0] + 2.0f*vsigmaC[0];
+   lrCoef[4] = v2rho2C[1]*tra[0]+2.0f*v2rhosigmaC[3]*DUMGRB+
+               v2rhosigmaC[4]*DUMGRC;
+   lrCoef[5] = 2.0f*v2rhosigmaC[2]*tra[0]+4.0f*v2sigma2C[2]*DUMGRB+
+               2.0f*v2sigma2C[4]*DUMGRC;
+   lrCoef[6] = v2rhosigmaC[1]*tra[0]+2.0f*v2sigma2C[1]*DUMGRB+
+               v2sigma2C[3]*DUMGRC;
+   lrCoef[7] = vsigmaC[1];
+
+   // BETA
+   DUMGRB=tra[5]*rho[5]+tra[6]*rho[6]+tra[7]*rho[7];
+   DUMGRC=tra[5]*rho[1]+tra[6]*rho[2]+tra[7]*rho[3];
+
+   // COEFFICIENTS
+   lrCoef[8] = v2rho2X[2]*tra[4]+2.0f*v2rhosigmaX[5]*DUMGRB;
+   lrCoef[8] += v2rho2C[2]*tra[4]+2.0f*v2rhosigmaC[5]*DUMGRB+
+                v2rhosigmaC[4]*DUMGRC;
+   lrCoef[9] = 2.0f*v2rhosigmaX[5]*tra[4]+4.0f*v2sigma2X[5]*DUMGRB;
+   lrCoef[9] += 2.0f*v2rhosigmaC[5]*tra[4]+4.0f*v2sigma2C[5]*DUMGRB+
+                2.0f*v2sigma2C[4]*DUMGRC;
+   lrCoef[10] = v2rhosigmaC[4]*tra[4]+2.0f*v2sigma2C[4]*DUMGRB+
+                v2sigma2C[3]*DUMGRC;
+   lrCoef[11] = 2.0f*vsigmaX[2] + 2.0f*vsigmaC[2];
+   lrCoef[12] = v2rho2C[1]*tra[4]+2.0f*v2rhosigmaC[2]*DUMGRB+
+                v2rhosigmaC[1]*DUMGRC;
+   lrCoef[13] = 2.0f*v2rhosigmaC[3]*tra[4]+4.0f*v2sigma2C[2]*DUMGRB+
+                2.0f*v2sigma2C[1]*DUMGRC;
+   lrCoef[14] = v2rhosigmaC[4]*tra[4]+2.0f*v2sigma2C[4]*DUMGRB+
+                v2sigma2C[3]*DUMGRC;
+   lrCoef[15] = vsigmaC[1];
 
    return;
 }
