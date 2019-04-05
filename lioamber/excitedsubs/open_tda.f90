@@ -15,7 +15,7 @@ use lrdata, only: nstates, cbas, fitLR, Coef_trans, Coef_transB
    real*8, dimension(:,:), allocatable :: Fva, Fvb, H, eigvec, RitzVecA, RitzVecB
    real*8, dimension(:,:), allocatable :: ResMatA, ResMatB
    real*8, dimension(:,:,:), allocatable :: tmatMOa, tmatMOb, tmatAOa, tmatAOb
-   real*8, dimension(:,:,:), allocatable :: FM2a, FM2b, FXC_a, FXC_b
+   real*8, dimension(:,:,:), allocatable :: FM2a, FM2b
    logical :: conv
 
    calc_2elec = 0
@@ -78,8 +78,8 @@ use lrdata, only: nstates, cbas, fitLR, Coef_trans, Coef_transB
    call open_vec_init(tvecMOa,tvecMOb,Ea,Eb,M,NCOa,NCOb,Ndim,vec_dim)
 
 !  PRINT INFORMATION
-   write(*,"(1X,A,10X,I2,2X,I2,2X,I2,2X,I2)") "NCOA, NCOB, NVIRTA, NVIRTB",NCOa,NCOb,Nvirta,Nvirtb
-   write(*,"(1X,A,10X,I2,2X,I2,2X,I2)") "NDIMA, NDIMB, M", Ndima, Ndimb, M
+   write(*,"(1X,A,10X,I3,2X,I3,2X,I3,2X,I3)") "NCOA, NCOB, NVIRTA, NVIRTB",NCOa,NCOb,Nvirta,Nvirtb
+   write(*,"(1X,A,10X,I5,2X,I5,2X,I3)") "NDIMA, NDIMB, M", Ndima, Ndimb, M
    write(*,"(1X,A,11X,I3)") "DIMENSION OF FULL MATRIX",Ndimt
    write(*,"(1X,A,23X,I3)") "MAX SUBSPACE",max_subs
    write(*,"(1X,A,20X,I2)") "MAX ITERATIONES",maxIter
@@ -102,15 +102,11 @@ use lrdata, only: nstates, cbas, fitLR, Coef_trans, Coef_transB
      call vecMOtomatMO(tvecMOb,tmatMOb,M,NCOb,Nvirtb, &
                        Subdim,vec_dim,first_vec,Ndim)
 
-!    CHANGE BASIS MO -> AO FOR EACH VECTOR
-     ! alpha
-     if(allocated(tmatAOa)) deallocate(tmatAOa)
-        allocate(tmatAOa(M,M,vec_dim))
-     ! beta
-     if(allocated(tmatAOb)) deallocate(tmatAOb)
-        allocate(tmatAOb(M,M,vec_dim))
+!    CHANGE BASIS MO -> AO FOR EACH VECTOR: ALPHA AND BETA
+     allocate(tmatAOa(M,M,vec_dim),tmatAOb(M,M,vec_dim))
      call open_matMOtomatAO(tmatMOa,tmatMOb,tmatAOa,tmatAOb,&
-          Ca,Cb,M,vec_dim,.true.)
+                            Ca,Cb,M,vec_dim,.true.)
+     deallocate(tmatMOa,tmatMOb)
 
 !    CALCULATE 2E INTEGRALS
      allocate(FM2a(M,M,vec_dim)); FM2a = 0.0D0
@@ -127,25 +123,16 @@ use lrdata, only: nstates, cbas, fitLR, Coef_trans, Coef_transB
     
 !    CALCULATE DFT INTEGRALS
      call g2g_timer_start('Dft integrals of vectors')
-     allocate(FXC_a(M,M,vec_dim),FXC_b(M,M,vec_dim))
      do iv=1,vec_dim ! LOOPS VECTORS INSIDE OF ITERATION
-        ! beta
-        call multlr(tmatMOb(:,:,iv),Coef_transB,vmatAOb,M,M,M,1.0D0,0.0D0)
-        ! alpha
-        call multlr(tmatMOa(:,:,iv),Coef_trans,vmatAOa,M,M,M,1.0D0,0.0D0)
-        call g2g_open_calculatedft(vmatAOa,vmatAOb,Ca,Cb,Fva,Fvb,NCOa,NCOb)
-        FXC_a(:,:,iv) = Fva
-        FXC_b(:,:,iv) = Fvb
+        call g2g_open_calculatedft(tmatAOa(:,:,iv),tmatAOb(:,:,iv),Fva,Fvb)
+        FM2a(:,:,iv) = FM2a(:,:,iv) + Fva
+        FM2b(:,:,iv) = FM2b(:,:,iv) + Fvb
         Fva = 0.0D0
         Fvb = 0.0D0
      enddo ! END LOOPS VECTORS
-     deallocate(tmatMOa,tmatMOb)
+     deallocate(tmatAOa,tmatAOb)
      call g2g_timer_stop('Dft integrals of vectors')
 
-!    OBTAIN TOTAL FOCK: ALPHA AND BETA
-     FM2a = FM2a + FXC_a
-     FM2b = FM2b + FXC_b
-     deallocate(FXC_a,FXC_b)
      call open_MtoIANV(FM2a,FM2b,Ca,Cb,AX_a,AX_b,M,NCOa,NCOb,&
                        Ndim,Subdim,vec_dim,first_vec)
      deallocate(FM2a,FM2b)
@@ -202,6 +189,6 @@ use lrdata, only: nstates, cbas, fitLR, Coef_trans, Coef_transB
    enddo ! END DAVIDSON CYCLE
 
    deallocate(vmatAOa,vmatAOb,Fva,Fvb,ResMatA,ResMatB,val_old,Osc,eigvec,&
-              AX_a,AX_b,tvecMOa,tvecMOb,tmatAOa,tmatAOb)
+              AX_a,AX_b,tvecMOa,tvecMOb)
 
 end subroutine open_linear_response

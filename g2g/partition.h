@@ -142,8 +142,7 @@ class PointGroup {
   virtual void solve_for_exc(double*P,double*V,double*C,double*F,int& NCO) = 0;
 
   // openLR
-  virtual void open_solve_closed_lr(double* Ta,double* Tb,double* Ca,double* Cb,
-                                    double* Fa,double* Fb,int& NCOa,int& NCOb) = 0;
+  virtual void open_solve_closed_lr(double* Ta,double* Tb,double* Fa,double* Fb) = 0;
 
   bool is_significative(FunctionType, double exponent, double coeff, double d2);
 
@@ -197,8 +196,7 @@ class PointGroupCPU : public PointGroup<scalar_type> {
   virtual void solve_for_exc(double*P,double*V,double*C,double*F,int& NCO);
 
   // openLR
-  virtual void open_solve_closed_lr(double* Ta,double* Tb,double* Ca,double* Cb,
-                                    double* Fa,double* Fb,int& NCOa,int& NCOb);
+  virtual void open_solve_closed_lr(double* Ta,double* Tb,double* Fa,double* Fb);
 
   typedef vec_type<scalar_type, 2> vec_type2;
   typedef vec_type<scalar_type, 3> vec_type3;
@@ -236,8 +234,7 @@ class PointGroupGPU: public PointGroup<scalar_type> {
     virtual void solve_for_exc(double*P,double*V,double*C,double*F,int& NCO);
 
     // openLR
-    virtual void open_solve_closed_lr(double* Ta,double* Tb,double* Ca,double* Cb,
-                                      double* Fa,double* Fb,int& NCOa,int& NCOb);
+    virtual void open_solve_closed_lr(double* Ta,double* Tb,double* Fa,double* Fb);
 
     typedef vec_type<scalar_type,2> vec_type2;
     typedef vec_type<scalar_type,3> vec_type3;
@@ -273,8 +270,7 @@ class Partition {
     void solveForcesExc(double*P,double*V,double*C,double*F,int& NCO);
 
     // open LR
-    void open_solve_lr(double* Ta,double* Tb,double* Ca,double* Cb,
-                       double* Fa,double* Fb,int& NCOa,int& NCOb);
+    void open_solve_lr(double* Ta,double* Tb,double* Fa,double* Fb);
 
     std::vector<PointGroup<base_scalar_type>*> cubes;
     std::vector<PointGroup<base_scalar_type>*> spheres;
