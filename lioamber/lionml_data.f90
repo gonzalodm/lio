@@ -50,7 +50,8 @@ module lionml_data
    use transport_data    , only: transport_calc, generate_rho0, nbias,         &
                                  save_charge_freq, driving_rate, Pop_Drive
    use ghost_atoms_data  , only: n_ghosts, ghost_atoms
-   use lrdata           , only: lresp, nstates, root, FCA, nfo, nfv, fitLR
+   use lrdata           ,  only: lresp, nstates, root, FCA, nfo, nfv, fitLR,   &
+                                 second_LR, lambda_LR, state_LR
    use converger_ls      , only: Rho_LS, P_oscilation_analisis
    implicit none
 
@@ -110,6 +111,8 @@ module lionml_data
                   n_ghosts, ghost_atoms,                                       &
                   ! Variables for Linear Response
                   lresp, nstates, root, FCA, nfo, nfv, fitLR,                  &
+                  ! Variables for Second Linear Response
+                  second_LR, lambda_LR, state_LR,                              &
                   ! linear search for rho
                   Rho_LS, P_oscilation_analisis
 

@@ -1,5 +1,7 @@
 subroutine open_OscStr(Xa,Xb,Ene,Ca,Cb,OsSt, &
                        M,NCOa,NCOb,Ndim,Nstat)
+use lrdata, only: second_LR, doing_SLR, Tdip_flr, Tdip_slr, &
+                  state_LR
    implicit none
 
    integer, intent(in) :: M, NCOa, NCOb, Ndim, Nstat
@@ -38,5 +40,24 @@ subroutine open_OscStr(Xa,Xb,Ene,Ca,Cb,OsSt, &
 !  CALCULATE THE OSCILATOR STRENGHT
    call ObtainOsc(Tdip,Ene,OsSt,Nstat)
    OsSt = OsSt * 0.50D0
+   
+!  SAVE TRANSITION DIPOLE TO SECOND LINEAR RESPONSE
+   if (second_LR) then
+      print*, ""
+      print*, "Saving unperturbed transition dipole"
+      print*, ""
+      if(allocated(Tdip_flr)) deallocate(Tdip_flr)
+      allocate(Tdip_flr(Nstat,3))
+      Tdip_flr = Tdip
+   endif
+   if (doing_SLR) then
+      print*, ""
+      print*, "Saving perturbed transition dipole"
+      print*, ""
+      if(allocated(Tdip_slr)) deallocate(Tdip_slr)
+      allocate(Tdip_slr(Nstat,3))
+      Tdip_slr = Tdip
+   endif
+
    deallocate(Tdip)
 end subroutine open_OscStr

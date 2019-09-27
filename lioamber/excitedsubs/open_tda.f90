@@ -1,11 +1,13 @@
 subroutine open_linear_response(Ca,Cb,Ea,Eb,M,NCOa,NCOb)
-use lrdata, only: nstates, cbas, fitLR, Coef_trans, Coef_transB
+use lrdata, only: nstates, cbas, fitLR, Coef_trans, Coef_transB, &
+                  second_LR, Xflr, Eflr, Xslr, Eslr, doing_SLR, state_LR
    implicit none
 
    integer, intent(in) :: M, NCOa, NCOb
    real*8, intent(in) :: Ca(M,M), Cb(M,M)
    real*8, intent(in) :: Ea(M), Eb(M)
 
+   character(len=8) :: char_max
    integer :: i, j, k, iv
    integer :: iter, calc_2elec
    integer :: Ndima, Ndimb, Ndimt, Ndim, Nvirta, Nvirtb
@@ -28,11 +30,20 @@ use lrdata, only: nstates, cbas, fitLR, Coef_trans, Coef_transB
    Ndimt = Ndima + Ndimb
    Ndim  = max(Ndima,Ndimb)
 
-   print*, ""
-   print*,"======================================="
-   print*,"      OPEN LINEAR RESPONSE - TDA"
-   print*,"======================================="
-   print*, ""
+   if (.not. doing_SLR) then
+      print*, ""
+      print*,"======================================="
+      print*,"      OPEN LINEAR RESPONSE - TDA"
+      print*,"======================================="
+      print*, ""
+   else
+      print*, ""
+      print*,"======================================="
+      print*,"  SECOND OPEN LINEAR RESPONSE - TDA"
+      print*,"======================================="
+      print*, ""
+      write(*,"(1X,A,I2,1X,A)") "ABSORPTION SPECTRA OF",state_LR,"EXCITED STATE"
+   endif
 
    !  CHECK INPUT VARIABLES
    if (nstates > Ndimt) then
@@ -78,10 +89,11 @@ use lrdata, only: nstates, cbas, fitLR, Coef_trans, Coef_transB
    call open_vec_init(tvecMOa,tvecMOb,Ea,Eb,M,NCOa,NCOb,Ndim,vec_dim)
 
 !  PRINT INFORMATION
+   write(char_max, '(i8)') max_subs
    write(*,"(1X,A,10X,I3,2X,I3,2X,I3,2X,I3)") "NCOA, NCOB, NVIRTA, NVIRTB",NCOa,NCOb,Nvirta,Nvirtb
    write(*,"(1X,A,10X,I5,2X,I5,2X,I3)") "NDIMA, NDIMB, M", Ndima, Ndimb, M
-   write(*,"(1X,A,11X,I3)") "DIMENSION OF FULL MATRIX",Ndimt
-   write(*,"(1X,A,23X,I3)") "MAX SUBSPACE",max_subs
+   write(*,"(1X,A,11X,I5)") "DIMENSION OF FULL MATRIX",Ndimt
+   write(*,"(1X,A,23X,A)") "MAX SUBSPACE",adjustl(char_max)
    write(*,"(1X,A,20X,I2)") "MAX ITERATIONES",maxIter
    write(*,"(1X,A,3X,I4)") "NUMBER OF INITIAL TRIALS VECTORS",vec_dim
 
@@ -187,6 +199,27 @@ use lrdata, only: nstates, cbas, fitLR, Coef_trans, Coef_transB
        vec_dim = newvec
      endif
    enddo ! END DAVIDSON CYCLE
+
+   ! SECOND LINEAR RESPONSE => SAVE VARIABLES
+   if ( second_LR ) then
+      if(allocated(Xflr)) deallocate(Xflr)
+      if(allocated(Eflr)) deallocate(Eflr)
+      allocate(Xflr(Ndim,nstates,2)) ! 1=alfa, 2=beta
+      allocate(Eflr(nstates))
+      Xflr(1:Ndim,1:nstates,1) = RitzVecA(1:Ndim,1:nstates)
+      Xflr(1:Ndim,1:nstates,2) = RitzVecB(1:Ndim,1:nstates)
+      Eflr(1:nstates) = eigval(1:nstates)
+   endif
+ 
+   if ( doing_SLR ) then
+      if(allocated(Xslr)) deallocate(Xslr)
+      if(allocated(Eslr)) deallocate(Eslr)
+      allocate(Xslr(Ndim,nstates,2)) ! 1=alfa, 2=beta
+      allocate(Eslr(nstates))
+      Xslr(1:Ndim,1:nstates,1) = RitzVecA(1:Ndim,1:nstates)
+      Xslr(1:Ndim,1:nstates,2) = RitzVecB(1:Ndim,1:nstates)
+      Eslr(1:nstates) = eigval(1:nstates)
+   endif
 
    deallocate(vmatAOa,vmatAOb,Fva,Fvb,ResMatA,ResMatB,val_old,Osc,eigvec,&
               AX_a,AX_b,tvecMOa,tvecMOb)

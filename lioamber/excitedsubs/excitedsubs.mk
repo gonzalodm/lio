@@ -62,6 +62,7 @@ included += open_new_vectors.f90
 included += open_PrintResults.f90
 included += open_OscStr.f90
 included += open_calc2eFITT.f90
+included += open_second_LinearResponse.f90
 
 
 

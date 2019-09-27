@@ -73,6 +73,7 @@ contains
 #include "open_PrintResults.f90"
 #include "open_OscStr.f90"
 #include "open_calc2eFITT.f90"
+#include "open_second_LinearResponse.f90"
 
 
 end module excitedsubs

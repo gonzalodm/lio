@@ -5,6 +5,7 @@ use lrdata, only: nfo
    integer, intent(in) :: Ndim, Nstat, M, NCOa, NCOb
    real*8, intent(in) :: VecA(Ndim,Nstat), VecB(Ndim,Nstat), Val(Nstat), O(Nstat)
 
+   character(len=4) :: j_char, from_char, to_char
    integer :: ii, jj, from, to, Ndima, Ndimb
    real*8 :: value_x
 
@@ -13,13 +14,17 @@ use lrdata, only: nfo
    nfo = 0
 
    do jj=1,Nstat
-     write(*,100) jj, Val(jj), 45.56335D0/Val(jj), O(jj)
+     write (j_char, '(i4)') jj
+     write(*,100) adjustl(j_char), Val(jj), 45.56335D0/val(jj), O(jj)
      ! ALPHA
      from = NCOa
      to = NCOa + 1
      do ii=1,Ndima
-        if ( abs(VecA(ii,jj)) > 0.1D0 ) then
-           write(*,101) from+nfo, to+nfo, "(A)",VecA(ii,jj)
+        value_X = VecA(ii,jj)
+        if ( abs(value_X) > 0.1D0 ) then
+         write (from_char, '(i4)') from+nfo
+         write (to_char, '(i4)') to+nfo
+         write(*,101) adjustl(from_char), adjustl(to_char), "(A)", value_X
         endif
         to = to + 1
         if ( to == M+1 ) then
@@ -31,8 +36,11 @@ use lrdata, only: nfo
      from = NCOb
      to = NCOb + 1
      do ii=1,Ndimb
-        if ( abs(VecB(ii,jj)) > 0.1D0 ) then
-           write(*,101) from+nfo, to+nfo, "(B)",VecB(ii,jj)
+        value_X = VecB(ii,jj)
+        if ( abs(value_X) > 0.1D0 ) then
+         write (from_char, '(i4)') from+nfo
+         write (to_char, '(i4)') to+nfo
+         write(*,101) adjustl(from_char), adjustl(to_char), "(B)", value_X
         endif
         to = to + 1
         if ( to == M+1 ) then
@@ -43,7 +51,7 @@ use lrdata, only: nfo
      print*, " "
    enddo
    
-   100 FORMAT(1X,"STATE ",I2,3X,"ENERGY=",F8.4," Hartree, ",&
+   100 FORMAT(1X,"STATE ",A,3X,"ENERGY=",F8.4," Hartree, ",&
               F12.6," nm"," OSC=",F8.4)
-   101 FORMAT(6X,I3," -> ",I3,1X,A,2X,F14.7)
+   101 FORMAT(6X,A," -> ",A,1X,A,2X,F14.7)
 end subroutine open_PrintResults
