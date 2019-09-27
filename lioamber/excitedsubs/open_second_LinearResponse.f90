@@ -131,84 +131,78 @@ use lrdata, only: nstates
    real*8,  intent(inout) :: X1(Ndim,nstates,2)
 
    character(len=4) :: ii_char, jj_char
-   integer :: ii, jj, kk
-   real*8  :: temp, Ctol, scale_factor
-   logical :: asigned
-   real*8,  dimension(:), allocatable :: indexes, Ene_fake, OsSt_fake
+   integer :: ii, jj, kk, jj_max
+   real*8  :: temp, Ctol, scale_factor, val
+   real*8,  dimension(:), allocatable :: indexes, index_abs, Ene_fake, OsSt_fake
    real*8,  dimension(:,:), allocatable :: X1temp
 
-   Ctol = 0.001d0
+   Ctol = 0.05d0
    write(*,"(1X,A,F6.3,1X,A)") "Using Ctol= ",Ctol,"to projection States"
 
-   allocate(X1temp(Ndim,nstates),indexes(nstates))
+   allocate(X1temp(Ndim,nstates),indexes(nstates),index_abs(nstates))
    ! ALPHA
    do ii=1,nstates ! Perturbed
-      asigned = .false.
       do jj=1,nstates ! Unperturbed
          temp = 0.0d0
          do kk=1,Ndim
             temp = temp + X1(kk,ii,1) * X0(kk,jj,1)
          enddo
-         if((dabs(temp)>(0.5d0-Ctol)) .and. (dabs(temp)<(0.5d0+Ctol))) then
-            asigned = .true.
-            scale_factor = 1.0d0
-            if(temp < 0.0d0) scale_factor = -1.0d0
-            X1temp(:,ii) = scale_factor * X1(:,jj,1)
-            if ( ii /= jj ) then
-               write (ii_char, '(i4)') ii
-               write (jj_char, '(i4)') jj
-               write (*,"(1X,A,A,A,A)") "Switch state A ", adjustl(ii_char), "to ", adjustl(jj_char)
-            endif
-         else
-            indexes(jj) = dabs(temp)
-         endif
-         if (asigned) exit ! exit of jj loop
+         indexes(jj) = temp
+         index_abs(jj) = dabs(temp)
       enddo
-      if(.not. asigned) then
-         write (ii_char, '(i4)') ii
-         write (jj_char, '(i4)') maxloc(indexes)
-         write(*,"(1X,A,A,1X,A)") "WARNING: The State ",adjustl(ii_char),"couldn't asigned"
-         write(*,"(1X,A,A,A,A,1X,A,F8.4)") "MAX: |X1_a(",adjustl(ii_char),")*X0_a(",adjustl(jj_char),")^T|=",maxval(indexes)
-         print*, ""
-         X1temp(:,ii) = X1(:,ii,1)
+      val = maxval(index_abs)
+      jj_max = maxloc(index_abs,1)
+      if( ((val) > (0.5d0-Ctol)) .and. ((val) < (0.5d0+Ctol)) ) then
+        if ( ii /= jj_max ) then
+           write (ii_char, '(i4)') ii
+           write (jj_char, '(i4)') jj_max
+           write (*,"(1X,A,A,A,A)") "Switch state A ", adjustl(ii_char), "to ", adjustl(jj_char)
+        endif
+      else
+        write (ii_char, '(i4)') ii
+        write (jj_char, '(i4)') jj_max
+        write(*,"(1X,A,A,1X,A)") "WARNING: The State ",adjustl(ii_char),"couldn't asigned"
+        write(*,"(1X,A,A,A,A,1X,A,F8.4)") "MAX: |X1_a(",adjustl(ii_char),")*X0_a(",adjustl(jj_char),")^T|=",val
+        print*, ""
       endif
+      scale_factor = 1.0d0
+      if (indexes(jj_max) < 0.0d0) scale_factor = -1.0d0
+      X1temp(:,ii) = scale_factor * X1(:,jj_max,1)
    enddo
-   X1(:,:,1) = X1temp(:,:); X1temp = 0.0d0
+   X1(:,:,1) = X1temp(:,:)
 
    ! BETA
    do ii=1,nstates ! Perturbed
-      asigned = .false.
       do jj=1,nstates ! Unperturbed
          temp = 0.0d0
          do kk=1,Ndim
             temp = temp + X1(kk,ii,2) * X0(kk,jj,2)
          enddo
-         if((dabs(temp)>(0.5d0-Ctol)) .and. (dabs(temp)<(0.5d0+Ctol))) then
-            asigned = .true.
-            scale_factor = 1.0d0
-            if(temp < 0.0d0) scale_factor = -1.0d0
-            X1temp(:,ii) = scale_factor * X1(:,jj,2)
-            if ( ii /= jj ) then
-               write (ii_char, '(i4)') ii
-               write (jj_char, '(i4)') jj
-               write (*,"(1X,A,A,A,A)") "Switch state B ", adjustl(ii_char), "to ", adjustl(jj_char)
-            endif
-         else
-            indexes(jj) = dabs(temp)
-         endif
-         if (asigned) exit ! exit of jj loop
+         indexes(jj) = temp
+         index_abs(jj) = dabs(temp)
       enddo
-      if(.not. asigned) then
-         write (ii_char, '(i4)') ii
-         write (jj_char, '(i4)') maxloc(indexes)
-         write(*,"(1X,A,A,1X,A)") "WARNING: The State ",adjustl(ii_char),"couldn't asigned"
-         write(*,"(1X,A,A,A,A,1X,A,F8.4)") "MAX: |X1_b(",adjustl(ii_char),")*X0_b(",adjustl(jj_char),")^T|=",maxval(indexes)
-         print*, ""
-         X1temp(:,ii) = X1(:,ii,2)
+      val = maxval(index_abs)
+      jj_max = maxloc(index_abs,1)
+      if( ((val) > (0.5d0-Ctol)) .and. ((val) < (0.5d0+Ctol)) ) then
+        if ( ii /= jj_max ) then
+           write (ii_char, '(i4)') ii
+           write (jj_char, '(i4)') jj_max
+           write (*,"(1X,A,A,A,A)") "Switch state A ", adjustl(ii_char), "to ", adjustl(jj_char)
+        endif
+      else
+        write (ii_char, '(i4)') ii
+        write (jj_char, '(i4)') jj_max
+        write(*,"(1X,A,A,1X,A)") "WARNING: The State ",adjustl(ii_char),"couldn't asigned"
+        write(*,"(1X,A,A,A,A,1X,A,F8.4)") "MAX: |X1_a(",adjustl(ii_char),")*X0_a(",adjustl(jj_char),")^T|=",val
+        print*, ""
       endif
+      scale_factor = 1.0d0
+      if (indexes(jj_max) < 0.0d0) scale_factor = -1.0d0
+      X1temp(:,ii) = scale_factor * X1(:,jj_max,2)
    enddo
-   X1(:,:,2) = X1temp(:,:); X1temp = 0.0d0
-   deallocate(X1temp,indexes)
+   X1(:,:,2) = X1temp(:,:)
+
+   deallocate(X1temp,indexes,index_abs)
 
    ! OBTAIN CORRECT TRANSITION DIPOLE OF PERTURBED VECTORS
    allocate(Ene_fake(nstates),OsSt_fake(nstates))
