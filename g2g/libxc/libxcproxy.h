@@ -300,7 +300,8 @@ void LibxcProxy <T, width>::doGGA(T dens,
                 v2rho,
                 v2rhosigma,
                 v2sigma,
-                NULL, NULL, NULL, NULL);
+                NULL, NULL, NULL, NULL,
+                NULL, NULL, NULL, NULL,NULL);
 
     // Now the correlation value.
     xc_gga (&funcForCorrelation, 1,
@@ -312,7 +313,8 @@ void LibxcProxy <T, width>::doGGA(T dens,
                 v2rhoC,
                 v2rhosigmaC,
                 v2sigmaC,
-                NULL, NULL, NULL, NULL);
+                NULL, NULL, NULL, NULL,
+                NULL, NULL, NULL, NULL, NULL);
 
     ex = exchange[0];
     ec = correlation[0];
@@ -395,7 +397,8 @@ void LibxcProxy <T, width>::doGGA(T* dens,
                 v2rho,
                 v2rhosigma,
                 v2sigma,
-                NULL, NULL, NULL, NULL);
+                NULL, NULL, NULL, NULL,
+                NULL, NULL, NULL, NULL, NULL);
 
     // Now the correlation value.
     xc_gga (&funcForCorrelation, number_of_points,
@@ -407,7 +410,8 @@ void LibxcProxy <T, width>::doGGA(T* dens,
                 v2rhoC,
                 v2rhosigmaC,
                 v2sigmaC,
-                NULL, NULL, NULL, NULL);
+                NULL, NULL, NULL, NULL,
+                NULL, NULL, NULL, NULL, NULL);
 
     for (int i=0; i<number_of_points; i++) {
 	ex[i] = exchange[i];
@@ -544,11 +548,13 @@ void LibxcProxy <T, width>::coefLR (double *rho,
 
    // Exchange values
    xc_gga(&funcForExchange,1,dens,sigma,&exc,vrhoX,vsigmaX,
-          v2rho2X,v2rhosigmaX,v2sigma2X,NULL,NULL,NULL,NULL);
+          v2rho2X,v2rhosigmaX,v2sigma2X,NULL,NULL,NULL,NULL,
+          NULL,NULL,NULL,NULL,NULL);
    
    // Correlation values
    xc_gga(&funcForCorrelation,1,dens,sigma,&exc,vrhoC,vsigmaC,
-          v2rho2C,v2rhosigmaC,v2sigma2C,NULL,NULL,NULL,NULL);
+          v2rho2C,v2rhosigmaC,v2sigma2C,NULL,NULL,NULL,NULL,
+          NULL,NULL,NULL,NULL,NULL);
 
    // Results
    double term1, term2, term3;
@@ -620,11 +626,13 @@ INPUTS:
 
    // Exchange values
    xc_gga(&funcForExchange,1,dens,sigma,&exc,vrhoX,vsigmaX,
-          v2rho2X,v2rhosigmaX,v2sigma2X,NULL,NULL,NULL,NULL);
+          v2rho2X,v2rhosigmaX,v2sigma2X,NULL,NULL,NULL,NULL,
+          NULL,NULL,NULL,NULL,NULL);
 
    // Correlation values
    xc_gga(&funcForCorrelation,1,dens,sigma,&exc,vrhoC,vsigmaC,
-          v2rho2C,v2rhosigmaC,v2sigma2C,NULL,NULL,NULL,NULL);
+          v2rho2C,v2rhosigmaC,v2sigma2C,NULL,NULL,NULL,NULL,
+          NULL,NULL,NULL,NULL,NULL);
 
    double DUMGRB, DUMGRC;
 
@@ -707,12 +715,14 @@ void LibxcProxy <T, width>::coefZv(double* rho,double* sgm, // inputs
    // Exchange Values
    xc_gga(&funcForExchange,1,dens,sigma,&exc,vrhoX,vsigmaX,
           v2rho2X,v2rhosigmaX,v2sigma2X,v3rho3X,v3rho2sigmaX,
-          v3rhosigma2X,v3sigma3X);
+          v3rhosigma2X,v3sigma3X,
+          NULL,NULL,NULL,NULL,NULL);
  
    // Correlation Values
    xc_gga(&funcForCorrelation,1,dens,sigma,&exc,vrhoC,vsigmaC,
           v2rho2C,v2rhosigmaC,v2sigma2C,v3rho3C,v3rho2sigmaC,
-          v3rhosigma2C,v3sigma3C);
+          v3rhosigma2C,v3sigma3C,
+          NULL,NULL,NULL,NULL,NULL);
 
    // Results: The first values corresponding to exchange values
    // first derivative
@@ -1207,7 +1217,8 @@ void LibxcProxy <T, width>::doGGA(T* dens,
                 v2rho,
                 v2rhosigma,
                 v2sigma,
-                NULL, NULL, NULL, NULL);
+                NULL, NULL, NULL, NULL,
+                NULL, NULL, NULL, NULL, NULL);
     } catch (int exception) {
         fprintf (stderr, "Exception ocurred calling xc_gga for Exchange '%d' \n", exception);
         return;
@@ -1226,7 +1237,8 @@ void LibxcProxy <T, width>::doGGA(T* dens,
                 v2rhoC,
                 v2rhosigmaC,
                 v2sigmaC,
-                NULL, NULL, NULL, NULL);
+                NULL, NULL, NULL, NULL,
+                NULL, NULL, NULL, NULL, NULL);
     } catch (int exception) {
         fprintf (stderr, "Exception ocurred calling xc_gga for Correlation '%d' \n", exception);
         return;
