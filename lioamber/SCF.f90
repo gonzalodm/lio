@@ -55,7 +55,8 @@ subroutine SCF(E, fock_aop, rho_aop, fock_bop, rho_bop)
                             write_final_convergence, write_ls_convergence, &
                             movieprint
    use fileio_data  , only: verbose
-   use basis_data   , only: kkinds, kkind, cools, cool, Nuc, nshell, M, MM, c_raw
+   use basis_data   , only: kkinds, kkind, cools, cool, Nuc, nshell, M, MM, c_raw, &
+                            Md, af, Nucd, nshelld
    use basis_subs, only: neighbour_list_2e
    use excited_data,  only: libint_recalc
    use excitedsubs ,  only: ExcProp
@@ -390,6 +391,7 @@ subroutine SCF(E, fock_aop, rho_aop, fock_bop, rho_bop)
    converged = .false.
    call converger_init( M_f, OPEN )
 
+   open(unit=789, file="data_points_iter.dat")
    do 999 while ( (.not. converged) .and. (niter <= nMax) )
       call g2g_timer_start('Total iter')
       call g2g_timer_sum_start('Iteration')
@@ -446,6 +448,10 @@ subroutine SCF(E, fock_aop, rho_aop, fock_bop, rho_bop)
       E = E1 + E2 + En + Exc
       call g2g_timer_sum_pause('Fock integrals')
 
+      ! GONZA: esto escribe el data point para cada iteracion
+      write(789,*) E1, E2, Exc, En, E, M, Md
+      write(789,*) Pmat_vec(:)
+      write(789,*) af(:)
 
       if (OPEN) then
          call spunpack_rho('L', M, rhoalpha , rho_a0)
@@ -626,6 +632,7 @@ subroutine SCF(E, fock_aop, rho_aop, fock_bop, rho_bop)
       call g2g_timer_stop('Total iter')
       call g2g_timer_sum_pause('Iteration')
 999 continue
+    close(789)
 
    call g2g_timer_sum_start('Finalize SCF')
 
@@ -708,6 +715,15 @@ subroutine SCF(E, fock_aop, rho_aop, fock_bop, rho_bop)
         E = E1 + E2 + En + Ens + Exc + E_restrain + E_dftd + Eexact + ELJS
 !       Write Energy Contributions
         if (npas.eq.1) npasw = 0
+
+        ! GONZA: esto escribe los data points del SCF convergido
+        open(unit=567,file="data_point.dat")
+        write(567,*) E1, E2, Exc, En, E, M, Md
+        write(567,*) nshelld(:)
+        write(567,*) Nucd(:)
+        write(567,*) Pmat_vec(:)
+        write(567,*) af(:)
+        close(567)
 
         if (npas.gt.npasw) then
            call ECP_energy( MM, Pmat_vec, Eecp, Es )
